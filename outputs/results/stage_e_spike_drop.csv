@@ -1,4 +1,4 @@
 experiment,accuracy
-with_signed_deviation,0.9500
-without_signed_deviation,0.5667
+with_signed_deviation,0.9667
+without_signed_deviation,0.5833
 improvement,+0.3833

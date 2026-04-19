@@ -1,0 +1,7 @@
+Features,Classifier,Accuracy,Drift->Anom,Anom->Drift
+9-feat (no URD),LR,1.000,0.000,0.000
+9-feat (no URD),RF,1.000,0.000,0.000
+12-feat (+prob),LR,1.000,0.000,0.000
+12-feat (+prob),RF,1.000,0.000,0.000
+16-feat URD,LR,1.000,0.000,0.000
+16-feat URD,RF,1.000,0.000,0.000

@@ -1,7 +1,7 @@
-Model,test_MSE,test_MAE,mean_sigma,val_NLL,epochs,time_s
-Gaussian GRU ★ [ours],0.361,0.466,0.512,0.721,42.0,25.7
-Gaussian LSTM,0.471,0.518,0.51,0.721,49.0,31.6
-Deterministic GRU,0.367,0.469,—,—,31,14.8
-Deterministic LSTM,0.443,0.506,—,—,34,16.5
-Ridge Regression,0.35,0.461,—,—,—,<1
+Model,Test MSE,Test MAE,Best Val NLL,Epochs,Train Time,Loss
+Gaussian GRU (primary),0.361,0.466,0.7212,42,~28s,NLL
+Gaussian LSTM,0.471,0.518,0.7211,49,~34s,NLL
+Deterministic GRU,0.367,0.469,—,31,~16s,MSE
+Deterministic LSTM,0.443,0.506,—,58,~32s,MSE
+Ridge Regression,0.35,0.461,—,—,<1s,MSE
 Naive Persistence,0.541,0.57,—,—,—,—

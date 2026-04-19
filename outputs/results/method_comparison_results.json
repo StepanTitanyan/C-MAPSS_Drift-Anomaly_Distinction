@@ -1,224 +1,224 @@
 {
   "NLL": {
     "overall": {
-      "roc_auc": 0.721148396108236,
-      "pr_auc": 0.1854696974172584
+      "roc_auc": 0.747729136533444,
+      "pr_auc": 0.37386544054949866
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9105045578993218,
-        "pr_auc": 0.2287955755937152
+        "roc_auc": 0.9487090489079709,
+        "pr_auc": 0.5039480872257722
       },
       "drop": {
-        "roc_auc": 0.9003335459315951,
-        "pr_auc": 0.1716492774088756
+        "roc_auc": 0.9396013523323585,
+        "pr_auc": 0.4599225405155098
       },
       "persistent_offset": {
-        "roc_auc": 0.9194063525828999,
-        "pr_auc": 0.40020416965083977
+        "roc_auc": 0.9602927293434257,
+        "pr_auc": 0.7133809742172753
       },
       "noise_burst": {
-        "roc_auc": 0.7831877907541841,
-        "pr_auc": 0.23754641969702156
+        "roc_auc": 0.8173172882624554,
+        "pr_auc": 0.45699538988427346
       },
       "sensor_freeze": {
-        "roc_auc": 0.43612415718165576,
-        "pr_auc": 0.03439287576215857
+        "roc_auc": 0.43980180297499805,
+        "pr_auc": 0.03466875669541356
       }
     },
     "event": {
-      "event_recall": 0.4720670391061452,
-      "mean_detection_delay": 1.0276134122287968,
+      "event_recall": 0.6797020484171322,
+      "mean_detection_delay": 0.5,
       "median_detection_delay": 0.0,
-      "event_precision": 0.20184231915470063,
+      "event_precision": 0.17479674796747968,
       "n_true_events": 1074,
-      "n_detected_events": 507,
-      "n_alarm_events": 3691
+      "n_detected_events": 730,
+      "n_alarm_events": 6396
     }
   },
   "D+Conformity": {
     "overall": {
-      "roc_auc": 0.7347775248703023,
-      "pr_auc": 0.18942068905683923
+      "roc_auc": 0.7662300995787407,
+      "pr_auc": 0.38608173664116624
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9071392829734719,
-        "pr_auc": 0.2292277066126118
+        "roc_auc": 0.9467016805633335,
+        "pr_auc": 0.5132389206385282
       },
       "drop": {
-        "roc_auc": 0.9009677758073548,
-        "pr_auc": 0.17344265957927404
+        "roc_auc": 0.9393278265198184,
+        "pr_auc": 0.4653832394281119
       },
       "persistent_offset": {
-        "roc_auc": 0.9161100611529179,
-        "pr_auc": 0.40047374330436053
+        "roc_auc": 0.9579244533015066,
+        "pr_auc": 0.7156081926219313
       },
       "noise_burst": {
-        "roc_auc": 0.7770337923340894,
-        "pr_auc": 0.2381667343116753
+        "roc_auc": 0.8124085463654932,
+        "pr_auc": 0.4616621410603804
       },
       "sensor_freeze": {
-        "roc_auc": 0.4868290668616597,
-        "pr_auc": 0.03867023295909104
+        "roc_auc": 0.5033690308017156,
+        "pr_auc": 0.04351106325379234
       }
     },
     "event": {
-      "event_recall": 0.4823091247672253,
-      "mean_detection_delay": 1.135135135135135,
+      "event_recall": 0.7160148975791434,
+      "mean_detection_delay": 0.7607282184655396,
       "median_detection_delay": 0.0,
-      "event_precision": 0.20415879017013233,
+      "event_precision": 0.17961089494163424,
       "n_true_events": 1074,
-      "n_detected_events": 518,
-      "n_alarm_events": 3703
+      "n_detected_events": 769,
+      "n_alarm_events": 6425
     }
   },
   "D+Variance": {
     "overall": {
-      "roc_auc": 0.7557299208667209,
-      "pr_auc": 0.21751529204602507
+      "roc_auc": 0.7848546234126781,
+      "pr_auc": 0.41071973963085073
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9076911958392966,
-        "pr_auc": 0.22930710900716414
+        "roc_auc": 0.9465720474768217,
+        "pr_auc": 0.5131521225852305
       },
       "drop": {
-        "roc_auc": 0.9022595695144464,
-        "pr_auc": 0.17359587939631016
+        "roc_auc": 0.9406504080849563,
+        "pr_auc": 0.46599586629249506
       },
       "persistent_offset": {
-        "roc_auc": 0.9155137137640221,
-        "pr_auc": 0.4007585872231319
+        "roc_auc": 0.9564624996176798,
+        "pr_auc": 0.7160701631308255
       },
       "noise_burst": {
-        "roc_auc": 0.7784511720591998,
-        "pr_auc": 0.23789017756166786
+        "roc_auc": 0.8114243611283328,
+        "pr_auc": 0.46041997951268243
       },
       "sensor_freeze": {
-        "roc_auc": 0.5512324533057251,
-        "pr_auc": 0.11280311832930143
+        "roc_auc": 0.5634636141886847,
+        "pr_auc": 0.12515334361304375
       }
     },
     "event": {
-      "event_recall": 0.5940409683426443,
-      "mean_detection_delay": 2.6379310344827585,
-      "median_detection_delay": 0.5,
-      "event_precision": 0.2294610151753009,
+      "event_recall": 0.7988826815642458,
+      "mean_detection_delay": 1.613053613053613,
+      "median_detection_delay": 0.0,
+      "event_precision": 0.19106434888685575,
       "n_true_events": 1074,
-      "n_detected_events": 638,
-      "n_alarm_events": 3822
+      "n_detected_events": 858,
+      "n_alarm_events": 6558
     }
   },
   "D+FDE": {
     "overall": {
-      "roc_auc": 0.7931925267235231,
-      "pr_auc": 0.22460201053336418
+      "roc_auc": 0.8239981200429923,
+      "pr_auc": 0.40530990845081294
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9031535516873043,
-        "pr_auc": 0.22639934565652414
+        "roc_auc": 0.9408187690560638,
+        "pr_auc": 0.36914086796878204
       },
       "drop": {
-        "roc_auc": 0.9004388728143862,
-        "pr_auc": 0.17138007242997122
+        "roc_auc": 0.9377667200754983,
+        "pr_auc": 0.3399510497031969
       },
       "persistent_offset": {
-        "roc_auc": 0.9150668251345836,
-        "pr_auc": 0.3913423417120713
+        "roc_auc": 0.9555825053151532,
+        "pr_auc": 0.6396633103627186
       },
       "noise_burst": {
-        "roc_auc": 0.7818827673800554,
-        "pr_auc": 0.2353805873827819
+        "roc_auc": 0.815204959999174,
+        "pr_auc": 0.4014499147077285
       },
       "sensor_freeze": {
-        "roc_auc": 0.6670266721576456,
-        "pr_auc": 0.16846318282531897
+        "roc_auc": 0.6851343016706686,
+        "pr_auc": 0.290277496123957
       }
     },
     "event": {
-      "event_recall": 0.5875232774674115,
-      "mean_detection_delay": 1.9778129952456418,
-      "median_detection_delay": 1.0,
-      "event_precision": 0.19825206991720332,
+      "event_recall": 0.8081936685288641,
+      "mean_detection_delay": 1.185483870967742,
+      "median_detection_delay": 0.0,
+      "event_precision": 0.19023136246786632,
       "n_true_events": 1074,
-      "n_detected_events": 631,
-      "n_alarm_events": 4348
+      "n_detected_events": 868,
+      "n_alarm_events": 6613
     }
   },
   "D+FDE+Run (URD)": {
     "overall": {
-      "roc_auc": 0.8067372715125237,
-      "pr_auc": 0.2352681655023041
+      "roc_auc": 0.8395228875103793,
+      "pr_auc": 0.4295497346856586
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9021346356273204,
-        "pr_auc": 0.22597474877082993
+        "roc_auc": 0.9397920750108891,
+        "pr_auc": 0.33391970404894133
       },
       "drop": {
-        "roc_auc": 0.8977459074834588,
-        "pr_auc": 0.1704487293038532
+        "roc_auc": 0.9356063846887769,
+        "pr_auc": 0.31198292932620125
       },
       "persistent_offset": {
-        "roc_auc": 0.9149269361764748,
-        "pr_auc": 0.39057740272490704
+        "roc_auc": 0.9555540179482622,
+        "pr_auc": 0.6335003018923708
       },
       "noise_burst": {
-        "roc_auc": 0.779186736743813,
-        "pr_auc": 0.23445291400563756
+        "roc_auc": 0.8126466479078578,
+        "pr_auc": 0.39665203274276006
       },
       "sensor_freeze": {
-        "roc_auc": 0.7125776387603155,
-        "pr_auc": 0.1682941199203251
+        "roc_auc": 0.736675075768791,
+        "pr_auc": 0.3530830626071874
       }
     },
     "event": {
-      "event_recall": 0.5875232774674115,
-      "mean_detection_delay": 1.9778129952456418,
-      "median_detection_delay": 1.0,
-      "event_precision": 0.19825206991720332,
+      "event_recall": 0.8268156424581006,
+      "mean_detection_delay": 1.2297297297297298,
+      "median_detection_delay": 0.0,
+      "event_precision": 0.19264949540593462,
       "n_true_events": 1074,
-      "n_detected_events": 631,
-      "n_alarm_events": 4348
+      "n_detected_events": 888,
+      "n_alarm_events": 6639
     }
   },
   "IForest": {
     "overall": {
-      "roc_auc": 0.6531427978935739,
-      "pr_auc": 0.04802259018958281
+      "roc_auc": 0.686614971895223,
+      "pr_auc": 0.05854120953197809
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.7694682969323627,
-        "pr_auc": 0.011249139358540333
+        "roc_auc": 0.8229944465185739,
+        "pr_auc": 0.014896778083704963
       },
       "drop": {
-        "roc_auc": 0.7607997324373094,
-        "pr_auc": 0.010950675471523749
+        "roc_auc": 0.8027904818202559,
+        "pr_auc": 0.013490269872782958
       },
       "persistent_offset": {
-        "roc_auc": 0.7942131788709667,
-        "pr_auc": 0.08917476307630928
+        "roc_auc": 0.8471927315249406,
+        "pr_auc": 0.12076681222930566
       },
       "noise_burst": {
-        "roc_auc": 0.7061017863832717,
-        "pr_auc": 0.07049433700096933
+        "roc_auc": 0.7465264035759527,
+        "pr_auc": 0.0890573720276992
       },
       "sensor_freeze": {
-        "roc_auc": 0.44219507484955733,
-        "pr_auc": 0.03475455005793316
+        "roc_auc": 0.44840121314439974,
+        "pr_auc": 0.03526024648510074
       }
     },
     "event": {
-      "event_recall": 0.002793296089385475,
-      "mean_detection_delay": 9.0,
-      "median_detection_delay": 9.0,
-      "event_precision": 0.0010921004732435385,
+      "event_recall": 0.17318435754189945,
+      "mean_detection_delay": 4.005376344086022,
+      "median_detection_delay": 4.0,
+      "event_precision": 0.04620187304890739,
       "n_true_events": 1074,
-      "n_detected_events": 3,
-      "n_alarm_events": 2747
+      "n_detected_events": 186,
+      "n_alarm_events": 4805
     }
   }
 }

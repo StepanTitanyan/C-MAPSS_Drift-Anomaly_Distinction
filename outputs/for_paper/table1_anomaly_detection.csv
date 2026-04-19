@@ -1,0 +1,6 @@
+Anomaly Type,NLL,MSE,D+Conformity,D+FDE,D+FDE+Run (URD),IForest
+Spike,0.996,0.999,0.998,0.994,0.989,0.431
+Drop,0.997,1.000,0.998,0.995,0.991,0.430
+Persistent Offset,0.997,0.997,0.982,0.995,0.988,0.434
+Noise Burst,0.817,0.814,0.721,0.811,0.802,0.414
+Sensor Freeze,0.352,0.363,0.552,0.840,0.892,0.367

@@ -1,0 +1,11 @@
+Type,Precision,Recall,F1,Support
+Spike,0.000,0.000,0.000,6
+Drop,0.143,0.167,0.154,6
+Persistent Offset,1.000,0.750,0.857,4
+Noise Burst,0.500,1.000,0.667,1
+Sensor Freeze,1.000,1.000,1.000,7
+Gradual Shift,1.000,0.333,0.500,3
+Sigmoid Plateau,0.600,0.600,0.600,5
+Accelerating,0.500,1.000,0.667,2
+Multi Sensor,1.000,1.000,1.000,4
+OVERALL ACCURACY,0.579,,,
