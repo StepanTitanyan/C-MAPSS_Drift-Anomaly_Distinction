@@ -1,0 +1,4 @@
+feature_set,n_features,accuracy_5class
+URD_full,16,0.9187
+standard_only,9,0.8812
+improvement,,+0.0375

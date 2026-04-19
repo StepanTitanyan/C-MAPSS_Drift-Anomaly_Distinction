@@ -1,0 +1,7 @@
+method,signal_space,freeze_roc,freeze_pr,delta_roc_vs_nll
+NLL,residuals,0.4361,0.0344,+0.0000
+D+Conformity,residuals (chi²),0.4868,0.0387,+0.0507
+D+Variance,RAW (variance),0.5512,0.1128,+0.1151
+D+FDE,RAW (Δx²),0.6670,0.1685,+0.2309
+D+FDE+Run (URD),RAW (Δx²+run),0.7126,0.1683,+0.2765
+IForest,residuals (tree),0.4422,0.0348,+0.0061

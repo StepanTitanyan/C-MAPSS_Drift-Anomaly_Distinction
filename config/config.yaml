@@ -1,0 +1,187 @@
+# =============================================================================
+# Drift-Aware Probabilistic Anomaly Detection — Master Configuration
+# =============================================================================
+# Every tunable parameter lives here. Nothing is hardcoded in source files.
+# For ablation studies, copy this file and change the relevant values.
+# =============================================================================
+
+# --- Paths -------------------------------------------------------------------
+paths:
+  raw_data_dir: "data/raw/CMAPSSDataset"       # Where the original .txt files live
+  processed_dir: "data/processed"            # Cached processed data
+  output_dir: "outputs"
+  model_dir: "outputs/models"
+  figure_dir: "outputs/figures"
+  results_dir: "outputs/results"
+  log_dir: "outputs/logs"
+
+# --- Dataset -----------------------------------------------------------------
+dataset:
+  subset: "FD001"                            # Start with FD001 (single op condition, single fault)
+
+  # Column definitions (C-MAPSS standard)
+  index_cols: ["unit_nr", "time_cycles"]
+  setting_cols: ["setting_1", "setting_2", "setting_3"]
+  sensor_cols: ["s_1", "s_2", "s_3", "s_4", "s_5", "s_6", "s_7",
+                "s_8", "s_9", "s_10", "s_11", "s_12", "s_13",
+                "s_14", "s_15", "s_16", "s_17", "s_18", "s_19",
+                "s_20", "s_21"]
+
+  # Sensors to drop (zero/near-zero variance in FD001)
+  drop_sensors_zero_var: ["s_1", "s_5", "s_6", "s_10", "s_16", "s_18", "s_19"]
+
+  # Sensors to drop (weak correlation with life_fraction in FD001)
+  drop_sensors_weak_corr: ["s_9", "s_14"]
+
+  # Final modeling sensor subset (after redundancy analysis)
+  # Positive degradation trend: s_3, s_4, s_11, s_17
+  # Negative degradation trend: s_7, s_12, s_20
+  selected_sensors: ["s_3", "s_4", "s_11", "s_17", "s_7", "s_12", "s_20"]
+
+  # Extended sensor set for ablation comparison
+  extended_sensors: ["s_2", "s_3", "s_4", "s_7", "s_8", "s_11", "s_12",
+                     "s_13", "s_15", "s_17", "s_20", "s_21"]
+
+# --- Preprocessing -----------------------------------------------------------
+preprocessing:
+  # Normal training region: only windows from early engine life are used
+  # to train the "normal behavior" model. This is critical for semi-supervised
+  # anomaly detection — the model should only see healthy behavior.
+  normal_life_fraction_threshold: 0.5        # Use first 50% of each engine's life
+
+  # Sequence windowing
+  window_size: 30                            # Number of past cycles as input
+  forecast_horizon: 1                        # Predict 1 step ahead
+
+  # Train/val/test split ratios (by engine, not by row!)
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  split_random_seed: 42
+
+# --- Model -------------------------------------------------------------------
+model:
+  # Which model to use as primary: "gaussian_lstm", "gaussian_gru",
+  # "deterministic_lstm", "deterministic_gru", "lstm_autoencoder"
+  primary: "gaussian_gru"
+
+  # Shared architecture settings
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+
+  # Gaussian output settings
+  sigma_min: 1.0e-4                          # Floor for predicted std to prevent NLL collapse
+  sigma_activation: "softplus"               # softplus guarantees positivity
+
+  # Autoencoder-specific
+  latent_dim: 32                             # Bottleneck dimension for LSTM-AE
+
+# --- Training ----------------------------------------------------------------
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 1.0e-5                       # L2 regularization
+  max_epochs: 100
+  early_stopping_patience: 15                # Stop if val loss doesn't improve for N epochs
+  lr_scheduler:
+    type: "reduce_on_plateau"
+    factor: 0.5
+    patience: 7
+    min_lr: 1.0e-6
+  gradient_clip_norm: 1.0                    # Clip gradients to prevent explosions
+  num_workers: 0                             # DataLoader workers (0 = main thread)
+  random_seed: 42
+
+# --- Anomaly Scoring ---------------------------------------------------------
+anomaly_scoring:
+  # Score type: "nll" (Gaussian NLL), "mse", "mae", "mahalanobis"
+  score_type: "nll"
+
+  # Score smoothing (exponential moving average)
+  smoothing:
+    enabled: true
+    alpha: 0.2                               # EMA decay factor
+
+  # Threshold selection (from normal validation scores)
+  thresholds:
+    percentiles: [95.0, 97.5, 99.0]          # Report at all three levels
+    primary_percentile: 97.5                  # Default operating threshold
+
+# --- Synthetic Anomaly Injection ---------------------------------------------
+synthetic_anomalies:
+  # Magnitudes in units of sensor standard deviation
+  magnitudes: [2.0, 3.0, 5.0]
+
+  # Injection life-fraction positions
+  injection_positions:
+    early: 0.2
+    mid: 0.5
+    late: 0.8
+
+  # Anomaly type parameters
+  spike:
+    duration: 1                              # Single step
+  drop:
+    duration: 1
+  persistent_offset:
+    durations: [5, 10, 15]
+  noise_burst:
+    durations: [5, 10, 15]
+    variance_multiplier: 3.0                 # How much to multiply normal variance
+  sensor_freeze:
+    durations: [5, 10, 20]
+  multi_sensor:
+    num_sensors: [2, 3]
+
+  random_seed: 123
+
+# --- Synthetic Drift Injection -----------------------------------------------
+synthetic_drift:
+  # Drift rates (slope per cycle in std units)
+  rates: [0.01, 0.03, 0.05]
+
+  # Drift durations (number of cycles)
+  durations: [30, 60, 100]
+
+  # Types
+  gradual_shift:
+    shape: "linear"
+  slow_plateau:
+    shape: "sigmoid"
+    transition_width: 20                     # Steps for sigmoid transition
+  regime_change:
+    slope_change_factor: 1.5
+  accelerating:
+    shape: "quadratic"
+
+  random_seed: 456
+
+# --- Drift Classifier (Second Stage) ----------------------------------------
+drift_classifier:
+  # Feature extraction window around each flagged event
+  analysis_window: 15
+
+  # Models to try
+  models: ["logistic_regression", "random_forest", "xgboost"]
+
+  # Random Forest settings
+  random_forest:
+    n_estimators: 100
+    max_depth: 6
+
+  random_seed: 789
+
+# --- Evaluation --------------------------------------------------------------
+evaluation:
+  # Life-fraction buckets for degradation analysis
+  life_fraction_buckets:
+    early: [0.0, 0.3]
+    middle: [0.3, 0.7]
+    late: [0.7, 1.0]
+
+# --- Visualization -----------------------------------------------------------
+visualization:
+  figure_dpi: 150
+  figure_format: "png"                       # "png" or "pdf" for paper
+  style: "seaborn-v0_8-whitegrid"

@@ -1,0 +1,17 @@
+feature,importance
+duration,0.1694
+max_single_sensor,0.1018
+mean_score,0.0882
+deviation_at_peak,0.0818
+sensor_concentration,0.0778
+du_ratio,0.0672
+max_score,0.0654
+score_slope,0.0611
+score_volatility,0.0587
+score_curvature,0.0444
+uncertainty_slope,0.0356
+signed_deviation_mean,0.0353
+uncertainty_at_peak,0.0335
+stationarity_max,0.0320
+num_sensors_flagged,0.0307
+stationarity_at_peak,0.0170
