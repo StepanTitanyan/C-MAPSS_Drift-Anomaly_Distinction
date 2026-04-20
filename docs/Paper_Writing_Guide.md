@@ -37,7 +37,7 @@ beyond standard binary detection ("anomalous or not"). Our framework:
 
 The core technical innovation is **URD (Uncertainty-Residual Decomposition)**: decomposing
 a probabilistic forecasting model's residuals into three orthogonal channels (Deviation,
-Uncertainty, Conformity) that together create a rich anomaly signature.
+Uncertainty, Stationarity) that together create a rich anomaly signature.
 
 ### Where does this fit in the literature?
 
@@ -85,28 +85,31 @@ specific, and informative.
 
 ## 3. Our Three Contributions — What is New
 
-### Contribution 1: The Conformity Channel (Bidirectional Detection)
+### Contribution 1: The Stationarity Channel (Bidirectional Detection)
 
-**What it is:** A statistical test based on the chi-squared distribution that detects when
-normalized residuals are *too small* — the signature of sensor freeze/stuck-value faults.
+**What it is:** A raw-signal stationarity score that detects variance collapse using
+first-difference energy (FDE) plus a run-length bonus. It is designed for sensor freeze
+and flatline faults, where residual-only methods fail because the model can predict the
+stuck value well.
 
-**Why it's new:** All existing time-series anomaly detection methods use one-directional
-scoring — they only flag when residuals are too large. Nobody has published a method that
-also flags when residuals are too small. The conformity channel fills this gap.
+**Why it's new:** Most time-series anomaly detectors are one-directional: they only react
+when residuals become too large. Our stationarity channel adds an orthogonal signal that
+asks whether a sensor has stopped moving in an implausible way.
 
-**Mathematical novelty:** The use of a lower-tail chi-squared test on normalized residuals
-from a probabilistic forecaster to detect variance suppression in sensor data.
+**Mathematical novelty:** The deployed baseline fuses a calibrated Mahalanobis deviation
+channel with a tuned stationarity channel,
 
-**Empirical evidence:** Sensor freeze ROC-AUC improves from 0.436 (below random) to 0.713.
-The baseline is structurally blind; our method provides genuine detection.
+	S_t = FDE_score(t) + 3 max(0, run_t - 1),
 
-**Why reviewers will like this:** It's a clean, principled, and novel idea. The math is
-rigorous (chi-squared theory). The improvement is dramatic (not marginal). And it addresses
-a real problem that practitioners care about.
+and then combines them as `0.35 D + 0.65 S`.
+
+**Empirical evidence:** Sensor freeze ROC-AUC improves from 0.4398 (below random) to 0.8230, and freeze PR-AUC rises from 0.0347 to 0.4467. The NLL baseline is structurally blind; the current URD baseline provides genuine detection.
+
+**Why reviewers will like this:** The idea is intuitive, operationally relevant, and strongly supported by the ablation path NLL → D+Conformity → D+Variance → D+FDE → URD baseline. The repo now also includes a practical TranAD-style transformer baseline under the same FD001 split, sensor subset, window length, and healthy-only training rule, so the comparison is methodologically fair rather than cross-paper.
 
 ### Contribution 2: URD-Based Drift Classification
 
-**What it is:** A 15-feature representation extracted from the three URD channels that
+**What it is:** A 16-feature representation extracted from the three URD channels that
 enables a lightweight classifier to distinguish sudden faults from gradual degradation.
 
 **Why it's new:** Existing drift detection methods (e.g., ADWIN, DDM, Page-Hinkley) work
@@ -122,7 +125,7 @@ behavior. Nobody combines both into a unified framework that classifies each eve
 
 ### Contribution 3: Anomaly Fingerprinting
 
-**What it is:** The (D, U, C) signature profile is distinctive enough to classify the
+**What it is:** The (D, U, S) signature profile is distinctive enough to classify the
 *specific type* of anomaly (spike, drop, offset, noise burst, freeze) and drift (gradual,
 sigmoid, accelerating, multi-sensor) using a single multi-class classifier.
 
@@ -130,7 +133,7 @@ sigmoid, accelerating, multi-sensor) using a single multi-class classifier.
 distinguish point anomalies from collective anomalies. No published method automatically
 categorizes into specific anomaly types from a single model's output.
 
-**Empirical evidence:** 91.9% five-class accuracy, 95.0% spike-vs-drop distinction.
+**Empirical evidence:** 90.2% five-class accuracy, 96.7% spike-vs-drop distinction.
 
 ---
 
@@ -163,7 +166,7 @@ that every existing method shares.
 
 ### 5.1 Novel and Well-Motivated
 
-The conformity channel is a genuinely new idea with a clear practical motivation (sensor
+The stationarity channel is a genuinely new idea with a clear practical motivation (sensor
 freeze). It's not an incremental improvement on existing methods — it's a new detection
 direction.
 
@@ -178,14 +181,14 @@ Every channel has a clear statistical interpretation. There are no arbitrary heu
 
 ### 5.3 Clean Experimental Design
 
-- NLL vs URD comparison isolates the conformity channel's contribution
-- Three-way ablation (9/12/15 features) proves URD features matter
+- NLL vs URD comparison isolates the stationarity channel's contribution
+- Three-way ablation (9/12/16 features) proves URD features matter
 - Multiple classifier types show robustness
 - Synthetic injection provides ground truth labels
 
 ### 5.4 Dramatic Improvement on the Key Metric
 
-Sensor freeze ROC-AUC going from 0.436 to 0.713 is a massive improvement. This isn't
+Sensor freeze ROC-AUC going from 0.4398 to 0.8230 is a massive improvement. This is not
 a marginal gain — it's going from "structurally incapable" to "genuinely functional."
 Reviewers respect large improvements on clearly defined problems.
 
@@ -230,7 +233,7 @@ drift) correspond to real industrial scenarios. The method is computationally li
 - We can mention FD002-FD004 as future work.
 - The framework is architecturally agnostic — any probabilistic forecaster works.
 
-### 6.3 Independence Assumption in Conformity Channel
+### 6.3 Independence Assumption in Stationarity Channel
 
 **The concern:** The chi-squared test assumes normalized residuals are independent across
 sensors. In practice, sensor correlations may cause dependencies.
@@ -283,7 +286,7 @@ Abstract                                          (250 words)
    4.2 URD: Uncertainty-Residual Decomposition
        4.2.1 Channel 1: Deviation
        4.2.2 Channel 2: Uncertainty
-       4.2.3 Channel 3: Conformity
+       4.2.3 Channel 3: Stationarity
        4.2.4 Combined Scoring
    4.3 Drift-vs-Anomaly Classification
    4.4 Anomaly Fingerprinting
@@ -319,16 +322,16 @@ key challenges: (1) distinguishing sudden faults from gradual drift, and (2) det
 sensor malfunctions that produce *reduced* rather than *increased* residuals. We propose
 URD (Uncertainty-Residual Decomposition), a framework that decomposes the output of a
 probabilistic forecasting model into three orthogonal channels: Deviation (how wrong are
-predictions?), Uncertainty (how confident is the model?), and Conformity (are predictions
-suspiciously accurate?). The novel Conformity channel uses a chi-squared test on normalized
-residuals to detect sensor freeze — a common fault invisible to standard methods. We show
-that URD's three-channel signature enables both drift-vs-anomaly classification and
-automatic anomaly-type fingerprinting. On the NASA C-MAPSS turbofan dataset, URD improves
-sensor freeze detection from ROC-AUC 0.44 to 0.71, achieves 94.2% drift classification
-accuracy, and provides 91.9% accuracy in 5-class anomaly fingerprinting. Our results
-demonstrate that probabilistic models provide fundamentally richer diagnostic information
-than deterministic alternatives, and that bidirectional residual analysis is essential for
-comprehensive anomaly detection."
+predictions?), Uncertainty (how confident is the model?), and Stationarity (has variability
+collapsed?). The current URD baseline uses calibrated Mahalanobis deviation, tuned raw-signal
+stationarity, and weighted fusion to detect both conventional anomalies and sensor freeze.
+We show that URD's three-channel signature enables both drift-vs-anomaly classification and
+automatic anomaly-type fingerprinting. On the NASA C-MAPSS turbofan dataset, the URD baseline
+improves overall anomaly ROC-AUC from 0.7477 to 0.8636, improves sensor-freeze ROC-AUC from
+0.4398 to 0.8230, achieves 95.3% drift classification accuracy, and provides 90.2% accuracy
+in 5-class anomaly fingerprinting. Our results demonstrate that probabilistic models provide
+fundamentally richer diagnostic information than deterministic alternatives, and that a
+stationarity-aware channel is essential for comprehensive anomaly detection."
 
 ### 8.2 Introduction
 
@@ -343,7 +346,7 @@ drift from anomaly, (3) they don't characterize the type of anomaly.
 
 **Paragraph 3: Our approach (high level).**
 We propose URD — three-channel decomposition of probabilistic residuals. Briefly describe
-D, U, C. The conformity channel is novel. Together, the channels create an anomaly signature.
+D, U, C. The stationarity channel is novel. Together, the channels create an anomaly signature.
 
 **Paragraph 4: Contributions.**
 Explicitly list the three contributions (numbered). Each one sentence.
@@ -443,7 +446,7 @@ U_t = (1/d) Σ_j (σ_{t,j} / σ^{ref}_j)
 ```
 where σ^{ref}_j = median_t(σ_{t,j}) on validation data.
 
-**4.2.3 Conformity Channel C:**
+**4.2.3 Stationarity Channel C:**
 ```
 Q_t = Σ_{i=t-w+1}^{t} Σ_{j=1}^{d} r²_{i,j}
 ```
@@ -461,7 +464,7 @@ S_t = max(D_t, C_t)
 
 **4.3 Feature Extraction and Classification**
 
-Define the 15 features formally. State the classifier (logistic regression, random forest).
+Define the 16 features formally. State the classifier (logistic regression, random forest).
 Explain the training data generation (synthetic injection).
 
 **4.4 Fingerprinting**
@@ -491,19 +494,19 @@ One-Class SVM.
 
 ### 8.7 Results
 
-**6.1 Anomaly Detection: NLL vs URD**
+**6.1 Anomaly Detection: URD, NLL, and TranAD**
 
 Table 1: Per-anomaly-type ROC-AUC comparison.
 
 Key narrative: URD matches or exceeds NLL on all anomaly types, and dramatically
-improves sensor freeze detection (0.44 → 0.71). The conformity channel adds a
+improves sensor freeze detection (0.44 → 0.82). The stationarity channel adds a
 fundamentally new detection capability without degrading existing capabilities.
 
 **6.2 Drift Classification Ablation**
 
 Table 2: 3 feature configs × 3 classifier types.
 
-Key narrative: URD features (15-dim) outperform both the 9-dim and 12-dim baselines.
+Key narrative: URD features (16-dim) outperform both the 9-dim and 12-dim baselines.
 The improvement is consistent across all classifier types, proving it's the features
 (not the classifier) driving the gain.
 
@@ -511,7 +514,7 @@ The improvement is consistent across all classifier types, proving it's the feat
 
 Table 3: Per-class accuracy and confusion matrix.
 
-Key narrative: Different anomaly types produce distinguishable (D, U, C) signatures.
+Key narrative: Different anomaly types produce distinguishable (D, U, S) signatures.
 The most informative channel varies by type: D for spikes, U for drift, C for freeze.
 
 **6.4 Qualitative Analysis**
@@ -521,7 +524,7 @@ the distinct signatures.
 
 ### 8.8 Discussion
 
-- The conformity channel's requirement for σ strengthens the case for probabilistic models
+- The stationarity channel's requirement for σ strengthens the case for probabilistic models
 - The D/U ratio as a drift indicator has connections to novelty detection and epistemic
   uncertainty
 - Limitations: synthetic evaluation, single dataset, independence assumption
@@ -552,15 +555,15 @@ Shows visually how each anomaly type produces a distinct signature.
 
 **Figure 3: Sensor Freeze Problem Illustration**
 Two panels: (a) NLL score for normal vs frozen sensor — shows NLL can't distinguish them.
-(b) Conformity score for normal vs frozen sensor — shows clear separation.
-This is the "aha" figure that sells the conformity channel.
+(b) Stationarity score for normal vs frozen sensor — shows clear separation.
+This is the "aha" figure that sells the stationarity channel.
 
 **Figure 4: ROC Curves**
-ROC curves for NLL vs URD, with separate panels for each anomaly type.
+ROC/PR curves comparing URD against TranAD, plus the NLL and ablation results where relevant.
 The sensor freeze panel should be most prominent.
 
 **Figure 5: Anomaly Signature Heatmap**
-A heatmap with anomaly types on rows and (D, U, C) on columns.
+A heatmap with anomaly types on rows and (D, U, S) on columns.
 Each cell shows the mean channel value for that type.
 Shows at a glance that types are distinguishable.
 
@@ -608,7 +611,7 @@ Use these consistently throughout the paper:
 | r_{t,j} | Normalized residual for sensor j at time t |
 | D_t | Deviation channel score at time t |
 | U_t | Uncertainty channel score at time t |
-| C_t | Conformity channel score at time t |
+| C_t | Stationarity channel score at time t |
 | S_t | Combined anomaly score at time t |
 | d | Number of sensors (= 7) |
 | w | Window size for conformity calculation (= 10) |
@@ -678,12 +681,12 @@ Knowledge-Based Systems or EAAI are strong alternatives.
 I am writing a research paper on time-series anomaly detection with the following specific
 contributions:
 
-1. A novel "Conformity Channel" that uses chi-squared tests on normalized residuals from
+1. A novel "Stationarity Channel" that uses chi-squared tests on normalized residuals from
    a probabilistic GRU to detect sensor freeze (when residuals are suspiciously SMALL,
    not just large)
-2. A three-channel decomposition (Deviation, Uncertainty, Conformity) called URD that
+2. A three-channel decomposition (Deviation, Uncertainty, Stationarity) called URD that
    distinguishes anomalies from drift
-3. Automatic anomaly-type fingerprinting from the (D, U, C) signature
+3. Automatic anomaly-type fingerprinting from the (D, U, S) signature
 
 I need you to search the web and find recent papers (2019-2026) that I should read and
 reference. For each paper, give me: the title, authors, year, venue, and a 2-3 sentence
@@ -790,7 +793,7 @@ for low-error anomalies."
 "These methods use uncertainty as a confidence measure (wider intervals = less confident).
 We go further by using uncertainty as a *diagnostic signal* — the temporal behavior of
 uncertainty distinguishes drift from anomaly. We also show that the predicted σ enables
-a novel conformity channel."
+a novel stationarity channel."
 
 **vs. Concept drift detection (ADWIN, DDM):**
 "These methods detect distributional shift in a 1D stream. We detect drift in the
@@ -830,7 +833,7 @@ A: URD is a post-hoc analysis framework, not a replacement for the forecasting m
 Any Transformer-based probabilistic forecaster could serve as the input to URD. The
 contribution is the three-channel decomposition, not the specific forecasting architecture.
 
-**Q4: "Isn't the conformity channel just checking for low variance?"**
+**Q4: "Isn't the stationarity channel just checking for low variance?"**
 A: It checks for variance that is low *relative to the model's expectation*. The chi-squared
 test is calibrated by σ — it knows what "normal" residual variance should be. A naturally
 quiet sensor has small raw residuals but normal normalized residuals. A frozen sensor has
@@ -870,7 +873,7 @@ why existing methods are insufficient and why your work matters.
 
 ### 16.3 Use the Three-Channel Signature as a Visual Motif
 
-The (D, U, C) signature table should appear early and be referenced throughout. It's
+The (D, U, S) signature table should appear early and be referenced throughout. It's
 the single most compact representation of your contribution. Every reader should leave
 the paper remembering "deviation, uncertainty, conformity."
 
@@ -930,9 +933,9 @@ anomaly from drift, (3) don't identify anomaly types.
 - C = max(0, (wd - Q) / √(2wd)) — captures suspiciously small residuals
 
 **Results:**
-- Sensor freeze: ROC-AUC 0.44 → 0.71
+- Sensor freeze: ROC-AUC 0.44 → 0.82
 - Drift classification: 94.2% accuracy
-- Fingerprinting: 91.9% five-class accuracy
+- Fingerprinting: 90.2% five-class accuracy
 
 **Key insight:** Bidirectional residual analysis + uncertainty decomposition provides
 fundamentally richer diagnostic information than standard deviation-only scoring.

@@ -40,6 +40,7 @@ from src.data.splits import split_engines, apply_split, get_split_summary
 from src.data.windowing import (create_windows, create_dataloader, create_full_sequence_windows)
 from src.models.gaussian_lstm import GaussianLSTM, DeterministicLSTM
 from src.models.gaussian_gru import GaussianGRU, DeterministicGRU
+from src.models.tranad import TranAD, TranADTrainer
 from src.models.baselines import NaivePersistence, RidgeBaseline
 from src.training.trainer import Trainer
 from src.anomaly.scoring import AnomalyScorer
@@ -168,6 +169,58 @@ def train_neural_model(model_name: str, model: torch.nn.Module, loss_type: str, 
 
     return {"model": model, "trainer": trainer, "history": history}
 
+
+
+
+def train_tranad_model(model_name: str, model: torch.nn.Module, loaders: dict, cfg: dict, device: str) -> dict:
+    """Train the practical TranAD baseline on healthy windows."""
+    print(f"\n--- Training {model_name} (loss=tranad) ---")
+
+    tcfg = cfg["model"].get("tranad", {})
+    trainer = TranADTrainer(
+        model=model,
+        learning_rate=cfg["training"]["learning_rate"],
+        weight_decay=cfg["training"]["weight_decay"],
+        max_epochs=cfg["training"]["max_epochs"],
+        patience=cfg["training"]["early_stopping_patience"],
+        lr_patience=cfg["training"]["lr_scheduler"]["patience"],
+        lr_factor=cfg["training"]["lr_scheduler"]["factor"],
+        min_lr=cfg["training"]["lr_scheduler"]["min_lr"],
+        gradient_clip_norm=cfg["training"]["gradient_clip_norm"],
+        phase2_weight=tcfg.get("phase2_weight", 1.5),
+        device=device,
+        checkpoint_dir=cfg["paths"]["model_dir"],
+        model_name=model_name)
+
+    history = trainer.fit(loaders["train"], loaders["val"], verbose=True)
+    return {"model": model, "trainer": trainer, "history": history}
+
+
+def evaluate_tranad_predictions(model: torch.nn.Module, X: np.ndarray, y: np.ndarray, device: str, batch_size: int = 256) -> dict:
+    """Run TranAD inference and compute next-step prediction metrics."""
+    model.eval()
+    model.to(device)
+
+    all_pred = []
+    with torch.no_grad():
+        for i in range(0, len(X), batch_size):
+            batch = torch.tensor(X[i:i+batch_size], dtype=torch.float32).to(device)
+            pred = model.predict_next(batch)
+            all_pred.append(pred.cpu().numpy())
+
+    pred = np.concatenate(all_pred, axis=0)
+    errors = y - pred
+    mse = float(np.mean(errors ** 2))
+    mae = float(np.mean(np.abs(errors)))
+    per_sensor_mae = np.mean(np.abs(errors), axis=0)
+    return {
+        "mu": pred,
+        "sigma": np.ones_like(pred),
+        "mse": mse,
+        "mae": mae,
+        "per_sensor_mae": per_sensor_mae.tolist(),
+        "mean_sigma": 1.0,
+    }
 
 def evaluate_model_predictions(model: torch.nn.Module, X: np.ndarray, y: np.ndarray, device: str, batch_size: int = 256) -> dict:
     """Run model inference and compute prediction metrics."""
@@ -331,6 +384,19 @@ def main():
         dropout=model_cfg["dropout"])
     results["deterministic_gru"] = train_neural_model("deterministic_gru", d_gru, "mse", data["loaders"], cfg, device)
 
+    #--- Practical TranAD baseline ---
+    tranad_cfg = model_cfg.get("tranad", {})
+    tranad = TranAD(
+        input_size=n_sensors,
+        window_size=cfg["preprocessing"]["window_size"],
+        d_model=tranad_cfg.get("d_model", 64),
+        nhead=tranad_cfg.get("nhead", 4),
+        num_layers=tranad_cfg.get("num_layers", 2),
+        dim_feedforward=tranad_cfg.get("dim_feedforward", 128),
+        dropout=tranad_cfg.get("dropout", 0.1),
+    )
+    results["tranad"] = train_tranad_model("tranad", tranad, data["loaders"], cfg, device)
+
     #--- Non-neural baselines ---
     print("\n--- Non-neural Baselines ---")
 
@@ -359,7 +425,10 @@ def main():
     eval_results = {}
     for name, res in results.items():
         print(f"\nEvaluating {name}...")
-        eval_res = evaluate_model_predictions(res["model"], data["arrays"]["X_test"], data["arrays"]["y_test"], device)
+        if name == "tranad":
+            eval_res = evaluate_tranad_predictions(res["model"], data["arrays"]["X_test"], data["arrays"]["y_test"], device)
+        else:
+            eval_res = evaluate_model_predictions(res["model"], data["arrays"]["X_test"], data["arrays"]["y_test"], device)
         eval_results[name] = eval_res
         print(f"  MSE: {eval_res['mse']:.6f}")
         print(f"  MAE: {eval_res['mae']:.6f}")
@@ -385,7 +454,10 @@ def main():
           f"on validation data...")
     scorer = AnomalyScorer(score_type=cfg["anomaly_scoring"]["score_type"])
 
-    val_eval = evaluate_model_predictions(primary_model, data["arrays"]["X_val"], data["arrays"]["y_val"], device)
+    if primary_name == "tranad":
+        val_eval = evaluate_tranad_predictions(primary_model, data["arrays"]["X_val"], data["arrays"]["y_val"], device)
+    else:
+        val_eval = evaluate_model_predictions(primary_model, data["arrays"]["X_val"], data["arrays"]["y_val"], device)
     scorer.fit_normalization(data["arrays"]["y_val"], val_eval["mu"], val_eval["sigma"])
 
     #Compute thresholds

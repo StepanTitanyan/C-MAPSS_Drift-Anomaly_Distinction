@@ -2,7 +2,7 @@
 ## Every File, Every Function, Every Design Decision
 
 **Primary model: Gaussian GRU** (gaussian_gru_best.pt).  
-**Novel channel: Stationarity (S)** using FDE + run-length on raw sensor values.
+**Current URD baseline:** calibrated Mahalanobis deviation + tuned stationarity (FDE + run-length) with weighted fusion.
 
 ---
 
@@ -12,15 +12,15 @@
 project/
 ├── config/config.yaml                   ← Every hyperparameter in one place
 ├── experiments/
-│   ├── 01_train_baselines.py            ← Stage A: train all 4 models
-│   ├── 02_synthetic_evaluation.py       ← Stage C: NLL vs URD head-to-head
-│   ├── 02b_method_comparison.py         ← Stage C+: 6-method comparison
+│   ├── 01_train_baselines.py            ← Stage A: train 5 models incl. TranAD
+│   ├── 02_synthetic_evaluation.py       ← Stage C: URD baseline vs TranAD
+│   ├── 02b_method_comparison.py         ← Stage C+: method comparison incl. TranAD
 │   ├── 03_drift_classification.py       ← Stage D: drift vs anomaly, ablation
 │   ├── 04_urd_fingerprinting.py         ← Stage E: 5-class fingerprinting
 │   └── 05_generate_paper_outputs.py     ← ★ ALL paper figures + tables
 ├── src/
 │   ├── data/                            ← loader, preprocessing, splits, windowing
-│   ├── models/                          ← gaussian_gru, gaussian_lstm, baselines
+│   ├── models/                          ← gaussian_gru, gaussian_lstm, tranad, baselines
 │   ├── training/                        ← losses.py, trainer.py
 │   ├── anomaly/                         ← scoring.py, urd.py, smoothing.py
 │   ├── synthetic/                       ← anomaly_generator.py, drift_generator.py
@@ -32,7 +32,7 @@ project/
 │   ├── figures/                         ← per-stage figures
 │   ├── results/                         ← CSV + JSON results
 │   ├── logs/                            ← training logs
-│   └── for_paper/                       ← ★ 7 figures + 4 tables (run script 05)
+│   └── for_paper/                       ← ★ updated paper pack (run script 05)
 └── tests/test_pipeline.py
 ```
 
@@ -438,18 +438,16 @@ Key results (from our runs):
 
 ### 02_synthetic_evaluation.py — Stage C
 
-1. Loads GRU + fits NLL scorer + URD scorer on validation data
-2. Generates 1,080 synthetic anomaly trajectories
-3. Scores with NLL-only and URD combined
-4. Computes ROC-AUC + PR-AUC per anomaly type
+1. Loads the Gaussian GRU backbone and the TranAD baseline
+2. Fits the URD scorer and the TranAD score normaliser on healthy validation windows
+3. Generates the same 1,080 synthetic anomaly trajectories
+4. Reports ROC-AUC, PR-AUC, per-type metrics, event metrics, delay, and false alarms
 
-Key result: sensor freeze ROC goes from 0.436 (NLL, sub-random!) to 0.713 (URD).
-
-Saves: `stage_c_results.json`, `stage_c_head_to_head.csv`, `stage_c_threshold_metrics.csv`
+Key result files: `stage_c_results.json`, `stage_c_threshold_sweep.csv`
 
 ### 02b_method_comparison.py — Stage C+
 
-6 methods compared: NLL → D+Conformity → D+Variance → D+FDE → D+FDE+Run (URD) → IForest
+Methods compared: NLL → D+Conformity → D+Variance → D+FDE → URD (baseline) → TranAD → IForest
 
 Shows progression that motivated our design. Conformity (chi-sq on residuals) fails.
 Only switching to raw sensor values (FDE) creates a working stationarity signal.
@@ -460,27 +458,27 @@ Saves: `method_comparison_roc.csv`, `method_comparison_pr.csv`,
 ### 03_drift_classification.py — Stage D
 
 16 configurations: 3 classifiers × (9/12/16 features).
-Key result: XGBoost + 16 URD features = 94.1% accuracy, 6.1% drift→anomaly rate.
+Key result: XGBoost + 16 URD features = 95.3% accuracy, 4.0% drift→anomaly rate.
 
 Saves: `stage_d_classification.csv`
 
 ### 04_urd_fingerprinting.py — Stage E
 
-5-class actionable taxonomy: 91.9% accuracy.
-Spike vs drop with signed_deviation_mean: 95.0% (vs 58.3% without).
+5-class actionable taxonomy: 90.2% accuracy.
+Spike vs drop with signed_deviation_mean: 96.7% (vs 58.3% without).
 
 Saves: `stage_e_5class.csv`, `stage_e_9class.csv`, `stage_e_spike_drop.csv`,
 `stage_e_ablation.csv`, `stage_e_feature_importance.csv`
 
 ### 05_generate_paper_outputs.py — ★ ALL PAPER OUTPUTS
 
-Run after Stage A. Generates 7 figures + 4 tables to `outputs/for_paper/`.
+Run after Stages A/C/D/E. Generates the updated paper pack in `outputs/for_paper/`.
 
 Structure:
 ```
 Phase 1 — no data needed:
   fig1_pipeline_overview.png        (static pipeline with math at every step)
-  table4_model_comparison.csv       (static from known results)
+  table4_model_comparison.csv       (read from latest Stage A results, including TranAD)
 
 Phase 2 — load data + GRU checkpoint
 
@@ -490,7 +488,7 @@ Phase 4 — generate:
   fig7_prediction_bands.png         (μ ± 2σ on test engine)
   fig2_urd_channels.png             (D/U/S for spike/drift/freeze)
   fig3_sensor_freeze_blind_spot.png (NLL vs Stationarity on frozen sensor)
-  fig4_roc_curves_by_type.png       (ROC per type, all 6 methods) + table1
+  fig2_roc_pr_urd_vs_tranad.png     (direct ROC/PR comparison)
   fig5_signature_heatmap.png        ((D,U,S) mean per event type)
   fig6_feature_importance.png       (RF importances Stage D)          + table2
   table3_fingerprint.csv            (5-class P/R/F1)
@@ -502,11 +500,11 @@ Phase 4 — generate:
 
 ### Detection (Stage C):
 
-| Metric | NLL Baseline | URD (D+FDE+Run) | Delta |
-|--------|-------------|-----------------|-------|
-| Overall ROC-AUC | 0.721 | **0.807** | +0.086 |
-| Sensor Freeze ROC | 0.436 (sub-random!) | **0.713** | **+0.277** |
-| Event Recall (p95) | 0.822 | **0.957** | +0.135 |
+| Metric | NLL Baseline | URD (baseline) | Delta |
+|--------|-------------|----------------|-------|
+| Overall ROC-AUC | 0.7477 (NLL) | **0.8636** | **+0.1159** |
+| Sensor Freeze ROC | 0.4398 (sub-random) | **0.8230** | **+0.3832** |
+| Sensor Freeze PR | 0.0347 | **0.4467** | **+0.4120** |
 
 ### Drift Classification (Stage D):
 
@@ -514,14 +512,14 @@ Phase 4 — generate:
 |----------|-----------------|-------------------|
 | 9-feat (no URD) | 88.8% | 11.5% |
 | 12-feat (+prob) | 91.5% | 7.4% |
-| **16-feat URD** | **94.1%** | **6.1%** |
+| **16-feat URD** | **95.3%** | **4.0%** |
 
 ### Fingerprinting (Stage E):
 
 | Metric | Value |
 |--------|-------|
-| 5-class accuracy | 91.9% |
-| Spike vs Drop (with signed_dev) | 95.0% |
+| 5-class accuracy | 90.2% |
+| Spike vs Drop (with signed_dev) | 96.7% |
 | Spike vs Drop (without) | 58.3% |
 | Sensor malfunction F1 | 0.914 |
 
@@ -562,7 +560,7 @@ gaussian_gru_best.pt
           ↓ DriftAnomalyClassifier("random_forest").fit(X_events, y_events)
           ↓ clf.evaluate(X_test, y_test) → accuracy, drift_as_anomaly_rate
           ↓
-      05_generate_paper_outputs.py → outputs/for_paper/ (7 figs + 4 tables)
+      05_generate_paper_outputs.py → outputs/for_paper/ (updated paper pack)
 ```
 
 ---
@@ -576,10 +574,10 @@ pip install -r requirements.txt
 #Stage A: train all models (~2-5 min on GPU)
 python -m experiments.01_train_baselines
 
-#Stage C: NLL vs URD head-to-head
+#Stage C: URD baseline vs TranAD direct comparison
 python -m experiments.02_synthetic_evaluation
 
-#Stage C+: all 6 methods compared
+#Stage C+: method comparison including TranAD
 python -m experiments.02b_method_comparison
 
 #Stage D: drift classification ablation
@@ -590,7 +588,7 @@ python -m experiments.04_urd_fingerprinting
 
 #Generate ALL paper figures and tables
 python -m experiments.05_generate_paper_outputs
-#→ outputs/for_paper/ (fig1-7 + table1-4, publication-ready, 200 DPI)
+#→ outputs/for_paper/ (updated figures/tables, publication-ready)
 ```
 
 All CSVs and figures are saved to `outputs/results/` and `outputs/figures/`.

@@ -28,106 +28,106 @@ PHASE 2: Model Training
 --- Training gaussian_lstm (loss=nll) ---
 Epoch [  1/100] Train: 0.845468 | Val: 0.742196 | LR: 1.00e-03 | Best: 0.742196 | Time: 1s
 Epoch [  2/100] Train: 0.730788 | Val: 0.730950 | LR: 1.00e-03 | Best: 0.730950 | Time: 2s
-Epoch [  3/100] Train: 0.728464 | Val: 0.725418 | LR: 1.00e-03 | Best: 0.725418 | Time: 2s
+Epoch [  3/100] Train: 0.728464 | Val: 0.725418 | LR: 1.00e-03 | Best: 0.725418 | Time: 3s
 Epoch [  4/100] Train: 0.729486 | Val: 0.724812 | LR: 1.00e-03 | Best: 0.724812 | Time: 3s
 Epoch [  5/100] Train: 0.728457 | Val: 0.725229 | LR: 1.00e-03 | Best: 0.724812 | Time: 4s
-Epoch [  6/100] Train: 0.726213 | Val: 0.721916 | LR: 1.00e-03 | Best: 0.721916 | Time: 4s
+Epoch [  6/100] Train: 0.726213 | Val: 0.721916 | LR: 1.00e-03 | Best: 0.721916 | Time: 5s
 Epoch [  7/100] Train: 0.726169 | Val: 0.731542 | LR: 1.00e-03 | Best: 0.721916 | Time: 5s
-Epoch [  8/100] Train: 0.726196 | Val: 0.724201 | LR: 1.00e-03 | Best: 0.721916 | Time: 5s
-Epoch [  9/100] Train: 0.724630 | Val: 0.726856 | LR: 1.00e-03 | Best: 0.721916 | Time: 6s
+Epoch [  8/100] Train: 0.726196 | Val: 0.724201 | LR: 1.00e-03 | Best: 0.721916 | Time: 6s
+Epoch [  9/100] Train: 0.724630 | Val: 0.726856 | LR: 1.00e-03 | Best: 0.721916 | Time: 7s
 Epoch [ 10/100] Train: 0.725385 | Val: 0.723126 | LR: 1.00e-03 | Best: 0.721916 | Time: 7s
-Epoch [ 11/100] Train: 0.727421 | Val: 0.722858 | LR: 1.00e-03 | Best: 0.721916 | Time: 7s
+Epoch [ 11/100] Train: 0.727421 | Val: 0.722858 | LR: 1.00e-03 | Best: 0.721916 | Time: 8s
 Epoch [ 12/100] Train: 0.726417 | Val: 0.726352 | LR: 1.00e-03 | Best: 0.721916 | Time: 8s
-Epoch [ 13/100] Train: 0.725832 | Val: 0.722919 | LR: 1.00e-03 | Best: 0.721916 | Time: 8s
-Epoch [ 14/100] Train: 0.725525 | Val: 0.725122 | LR: 5.00e-04 | Best: 0.721916 | Time: 9s
-Epoch [ 15/100] Train: 0.722632 | Val: 0.722530 | LR: 5.00e-04 | Best: 0.721916 | Time: 9s
-Epoch [ 16/100] Train: 0.722455 | Val: 0.721537 | LR: 5.00e-04 | Best: 0.721537 | Time: 10s
-Epoch [ 17/100] Train: 0.722798 | Val: 0.722923 | LR: 5.00e-04 | Best: 0.721537 | Time: 11s
-Epoch [ 18/100] Train: 0.722314 | Val: 0.722021 | LR: 5.00e-04 | Best: 0.721537 | Time: 11s
-Epoch [ 19/100] Train: 0.722659 | Val: 0.723564 | LR: 5.00e-04 | Best: 0.721537 | Time: 12s
+Epoch [ 13/100] Train: 0.725832 | Val: 0.722919 | LR: 1.00e-03 | Best: 0.721916 | Time: 9s
+Epoch [ 14/100] Train: 0.725525 | Val: 0.725122 | LR: 5.00e-04 | Best: 0.721916 | Time: 10s
+Epoch [ 15/100] Train: 0.722632 | Val: 0.722530 | LR: 5.00e-04 | Best: 0.721916 | Time: 10s
+Epoch [ 16/100] Train: 0.722455 | Val: 0.721537 | LR: 5.00e-04 | Best: 0.721537 | Time: 11s
+Epoch [ 17/100] Train: 0.722798 | Val: 0.722923 | LR: 5.00e-04 | Best: 0.721537 | Time: 12s
+Epoch [ 18/100] Train: 0.722314 | Val: 0.722021 | LR: 5.00e-04 | Best: 0.721537 | Time: 12s
+Epoch [ 19/100] Train: 0.722659 | Val: 0.723564 | LR: 5.00e-04 | Best: 0.721537 | Time: 13s
 Epoch [ 20/100] Train: 0.722747 | Val: 0.721185 | LR: 5.00e-04 | Best: 0.721185 | Time: 13s
-Epoch [ 21/100] Train: 0.722669 | Val: 0.722826 | LR: 5.00e-04 | Best: 0.721185 | Time: 13s
-Epoch [ 22/100] Train: 0.723291 | Val: 0.721592 | LR: 5.00e-04 | Best: 0.721185 | Time: 14s
+Epoch [ 21/100] Train: 0.722669 | Val: 0.722826 | LR: 5.00e-04 | Best: 0.721185 | Time: 14s
+Epoch [ 22/100] Train: 0.723291 | Val: 0.721592 | LR: 5.00e-04 | Best: 0.721185 | Time: 15s
 Epoch [ 23/100] Train: 0.721759 | Val: 0.722877 | LR: 5.00e-04 | Best: 0.721185 | Time: 15s
 Epoch [ 24/100] Train: 0.721698 | Val: 0.722234 | LR: 5.00e-04 | Best: 0.721185 | Time: 16s
-Epoch [ 25/100] Train: 0.723269 | Val: 0.725206 | LR: 5.00e-04 | Best: 0.721185 | Time: 16s
+Epoch [ 25/100] Train: 0.723269 | Val: 0.725206 | LR: 5.00e-04 | Best: 0.721185 | Time: 17s
 Epoch [ 26/100] Train: 0.722385 | Val: 0.722458 | LR: 5.00e-04 | Best: 0.721185 | Time: 17s
 Epoch [ 27/100] Train: 0.721919 | Val: 0.727421 | LR: 5.00e-04 | Best: 0.721185 | Time: 18s
-Epoch [ 28/100] Train: 0.722817 | Val: 0.722179 | LR: 2.50e-04 | Best: 0.721185 | Time: 19s
+Epoch [ 28/100] Train: 0.722817 | Val: 0.722179 | LR: 2.50e-04 | Best: 0.721185 | Time: 18s
 Epoch [ 29/100] Train: 0.720585 | Val: 0.721297 | LR: 2.50e-04 | Best: 0.721185 | Time: 19s
 Epoch [ 30/100] Train: 0.720191 | Val: 0.721310 | LR: 2.50e-04 | Best: 0.721185 | Time: 20s
-Epoch [ 31/100] Train: 0.719923 | Val: 0.721205 | LR: 2.50e-04 | Best: 0.721185 | Time: 21s
+Epoch [ 31/100] Train: 0.719923 | Val: 0.721205 | LR: 2.50e-04 | Best: 0.721185 | Time: 20s
 Epoch [ 32/100] Train: 0.720651 | Val: 0.721142 | LR: 2.50e-04 | Best: 0.721142 | Time: 21s
-Epoch [ 33/100] Train: 0.720251 | Val: 0.722368 | LR: 2.50e-04 | Best: 0.721142 | Time: 22s
-Epoch [ 34/100] Train: 0.719947 | Val: 0.721102 | LR: 2.50e-04 | Best: 0.721102 | Time: 23s
-Epoch [ 35/100] Train: 0.719956 | Val: 0.724052 | LR: 2.50e-04 | Best: 0.721102 | Time: 24s
-Epoch [ 36/100] Train: 0.720090 | Val: 0.722032 | LR: 2.50e-04 | Best: 0.721102 | Time: 24s
-Epoch [ 37/100] Train: 0.719527 | Val: 0.722076 | LR: 2.50e-04 | Best: 0.721102 | Time: 25s
-Epoch [ 38/100] Train: 0.719901 | Val: 0.722723 | LR: 2.50e-04 | Best: 0.721102 | Time: 26s
-Epoch [ 39/100] Train: 0.720387 | Val: 0.721975 | LR: 2.50e-04 | Best: 0.721102 | Time: 26s
-Epoch [ 40/100] Train: 0.720171 | Val: 0.723703 | LR: 2.50e-04 | Best: 0.721102 | Time: 27s
-Epoch [ 41/100] Train: 0.719355 | Val: 0.721723 | LR: 2.50e-04 | Best: 0.721102 | Time: 28s
-Epoch [ 42/100] Train: 0.720474 | Val: 0.721845 | LR: 1.25e-04 | Best: 0.721102 | Time: 29s
-Epoch [ 43/100] Train: 0.718724 | Val: 0.721493 | LR: 1.25e-04 | Best: 0.721102 | Time: 29s
-Epoch [ 44/100] Train: 0.718482 | Val: 0.721478 | LR: 1.25e-04 | Best: 0.721102 | Time: 30s
-Epoch [ 45/100] Train: 0.718769 | Val: 0.721239 | LR: 1.25e-04 | Best: 0.721102 | Time: 31s
-Epoch [ 46/100] Train: 0.718364 | Val: 0.721687 | LR: 1.25e-04 | Best: 0.721102 | Time: 31s
-Epoch [ 47/100] Train: 0.718544 | Val: 0.721932 | LR: 1.25e-04 | Best: 0.721102 | Time: 32s
-Epoch [ 48/100] Train: 0.718310 | Val: 0.721988 | LR: 1.25e-04 | Best: 0.721102 | Time: 33s
-Epoch [ 49/100] Train: 0.718571 | Val: 0.721421 | LR: 1.25e-04 | Best: 0.721102 | Time: 34s
+Epoch [ 33/100] Train: 0.720251 | Val: 0.722368 | LR: 2.50e-04 | Best: 0.721142 | Time: 21s
+Epoch [ 34/100] Train: 0.719947 | Val: 0.721102 | LR: 2.50e-04 | Best: 0.721102 | Time: 22s
+Epoch [ 35/100] Train: 0.719956 | Val: 0.724052 | LR: 2.50e-04 | Best: 0.721102 | Time: 23s
+Epoch [ 36/100] Train: 0.720090 | Val: 0.722032 | LR: 2.50e-04 | Best: 0.721102 | Time: 23s
+Epoch [ 37/100] Train: 0.719527 | Val: 0.722076 | LR: 2.50e-04 | Best: 0.721102 | Time: 24s
+Epoch [ 38/100] Train: 0.719901 | Val: 0.722723 | LR: 2.50e-04 | Best: 0.721102 | Time: 25s
+Epoch [ 39/100] Train: 0.720387 | Val: 0.721975 | LR: 2.50e-04 | Best: 0.721102 | Time: 25s
+Epoch [ 40/100] Train: 0.720171 | Val: 0.723703 | LR: 2.50e-04 | Best: 0.721102 | Time: 26s
+Epoch [ 41/100] Train: 0.719355 | Val: 0.721723 | LR: 2.50e-04 | Best: 0.721102 | Time: 27s
+Epoch [ 42/100] Train: 0.720474 | Val: 0.721845 | LR: 1.25e-04 | Best: 0.721102 | Time: 27s
+Epoch [ 43/100] Train: 0.718724 | Val: 0.721493 | LR: 1.25e-04 | Best: 0.721102 | Time: 28s
+Epoch [ 44/100] Train: 0.718482 | Val: 0.721478 | LR: 1.25e-04 | Best: 0.721102 | Time: 29s
+Epoch [ 45/100] Train: 0.718769 | Val: 0.721239 | LR: 1.25e-04 | Best: 0.721102 | Time: 29s
+Epoch [ 46/100] Train: 0.718364 | Val: 0.721687 | LR: 1.25e-04 | Best: 0.721102 | Time: 30s
+Epoch [ 47/100] Train: 0.718544 | Val: 0.721932 | LR: 1.25e-04 | Best: 0.721102 | Time: 31s
+Epoch [ 48/100] Train: 0.718310 | Val: 0.721988 | LR: 1.25e-04 | Best: 0.721102 | Time: 31s
+Epoch [ 49/100] Train: 0.718571 | Val: 0.721421 | LR: 1.25e-04 | Best: 0.721102 | Time: 32s
 
 Early stopping at epoch 49 (no improvement for 15 epochs)
 
-Training complete in 33.5s
+Training complete in 31.9s
 Best validation loss: 0.721102
 
 --- Training gaussian_gru (loss=nll) ---
 Epoch [  1/100] Train: 0.824459 | Val: 0.732155 | LR: 1.00e-03 | Best: 0.732155 | Time: 1s
 Epoch [  2/100] Train: 0.730976 | Val: 0.729429 | LR: 1.00e-03 | Best: 0.729429 | Time: 1s
 Epoch [  3/100] Train: 0.727965 | Val: 0.724635 | LR: 1.00e-03 | Best: 0.724635 | Time: 2s
-Epoch [  4/100] Train: 0.729017 | Val: 0.727003 | LR: 1.00e-03 | Best: 0.724635 | Time: 3s
+Epoch [  4/100] Train: 0.729017 | Val: 0.727003 | LR: 1.00e-03 | Best: 0.724635 | Time: 2s
 Epoch [  5/100] Train: 0.726594 | Val: 0.724233 | LR: 1.00e-03 | Best: 0.724233 | Time: 3s
 Epoch [  6/100] Train: 0.726750 | Val: 0.728372 | LR: 1.00e-03 | Best: 0.724233 | Time: 4s
-Epoch [  7/100] Train: 0.726479 | Val: 0.723192 | LR: 1.00e-03 | Best: 0.723192 | Time: 5s
+Epoch [  7/100] Train: 0.726479 | Val: 0.723192 | LR: 1.00e-03 | Best: 0.723192 | Time: 4s
 Epoch [  8/100] Train: 0.724616 | Val: 0.723364 | LR: 1.00e-03 | Best: 0.723192 | Time: 5s
 Epoch [  9/100] Train: 0.724831 | Val: 0.725328 | LR: 1.00e-03 | Best: 0.723192 | Time: 6s
-Epoch [ 10/100] Train: 0.724392 | Val: 0.723499 | LR: 1.00e-03 | Best: 0.723192 | Time: 7s
+Epoch [ 10/100] Train: 0.724392 | Val: 0.723499 | LR: 1.00e-03 | Best: 0.723192 | Time: 6s
 Epoch [ 11/100] Train: 0.723476 | Val: 0.724117 | LR: 1.00e-03 | Best: 0.723192 | Time: 7s
 Epoch [ 12/100] Train: 0.723920 | Val: 0.725876 | LR: 1.00e-03 | Best: 0.723192 | Time: 8s
-Epoch [ 13/100] Train: 0.723983 | Val: 0.722605 | LR: 1.00e-03 | Best: 0.722605 | Time: 9s
+Epoch [ 13/100] Train: 0.723983 | Val: 0.722605 | LR: 1.00e-03 | Best: 0.722605 | Time: 8s
 Epoch [ 14/100] Train: 0.723268 | Val: 0.724360 | LR: 1.00e-03 | Best: 0.722605 | Time: 9s
-Epoch [ 15/100] Train: 0.726329 | Val: 0.723125 | LR: 1.00e-03 | Best: 0.722605 | Time: 10s
-Epoch [ 16/100] Train: 0.723332 | Val: 0.723164 | LR: 1.00e-03 | Best: 0.722605 | Time: 11s
+Epoch [ 15/100] Train: 0.726329 | Val: 0.723125 | LR: 1.00e-03 | Best: 0.722605 | Time: 9s
+Epoch [ 16/100] Train: 0.723332 | Val: 0.723164 | LR: 1.00e-03 | Best: 0.722605 | Time: 10s
 Epoch [ 17/100] Train: 0.724207 | Val: 0.723484 | LR: 1.00e-03 | Best: 0.722605 | Time: 11s
-Epoch [ 18/100] Train: 0.723727 | Val: 0.721935 | LR: 1.00e-03 | Best: 0.721935 | Time: 12s
-Epoch [ 19/100] Train: 0.722315 | Val: 0.722547 | LR: 1.00e-03 | Best: 0.721935 | Time: 13s
+Epoch [ 18/100] Train: 0.723727 | Val: 0.721935 | LR: 1.00e-03 | Best: 0.721935 | Time: 11s
+Epoch [ 19/100] Train: 0.722315 | Val: 0.722547 | LR: 1.00e-03 | Best: 0.721935 | Time: 12s
 Epoch [ 20/100] Train: 0.721782 | Val: 0.727462 | LR: 1.00e-03 | Best: 0.721935 | Time: 13s
 Epoch [ 21/100] Train: 0.722431 | Val: 0.722855 | LR: 1.00e-03 | Best: 0.721935 | Time: 14s
-Epoch [ 22/100] Train: 0.721656 | Val: 0.724678 | LR: 1.00e-03 | Best: 0.721935 | Time: 15s
-Epoch [ 23/100] Train: 0.723824 | Val: 0.725184 | LR: 1.00e-03 | Best: 0.721935 | Time: 16s
+Epoch [ 22/100] Train: 0.721656 | Val: 0.724678 | LR: 1.00e-03 | Best: 0.721935 | Time: 14s
+Epoch [ 23/100] Train: 0.723824 | Val: 0.725184 | LR: 1.00e-03 | Best: 0.721935 | Time: 15s
 Epoch [ 24/100] Train: 0.722435 | Val: 0.723689 | LR: 1.00e-03 | Best: 0.721935 | Time: 16s
 Epoch [ 25/100] Train: 0.722082 | Val: 0.722992 | LR: 1.00e-03 | Best: 0.721935 | Time: 17s
-Epoch [ 26/100] Train: 0.722270 | Val: 0.724702 | LR: 5.00e-04 | Best: 0.721935 | Time: 18s
+Epoch [ 26/100] Train: 0.722270 | Val: 0.724702 | LR: 5.00e-04 | Best: 0.721935 | Time: 17s
 Epoch [ 27/100] Train: 0.719886 | Val: 0.721159 | LR: 5.00e-04 | Best: 0.721159 | Time: 18s
 Epoch [ 28/100] Train: 0.719111 | Val: 0.721609 | LR: 5.00e-04 | Best: 0.721159 | Time: 19s
 Epoch [ 29/100] Train: 0.719066 | Val: 0.721636 | LR: 5.00e-04 | Best: 0.721159 | Time: 20s
 Epoch [ 30/100] Train: 0.718692 | Val: 0.723015 | LR: 5.00e-04 | Best: 0.721159 | Time: 20s
 Epoch [ 31/100] Train: 0.719737 | Val: 0.723137 | LR: 5.00e-04 | Best: 0.721159 | Time: 21s
-Epoch [ 32/100] Train: 0.719213 | Val: 0.721184 | LR: 5.00e-04 | Best: 0.721159 | Time: 21s
-Epoch [ 33/100] Train: 0.718820 | Val: 0.722531 | LR: 5.00e-04 | Best: 0.721159 | Time: 22s
-Epoch [ 34/100] Train: 0.719037 | Val: 0.722181 | LR: 5.00e-04 | Best: 0.721159 | Time: 23s
-Epoch [ 35/100] Train: 0.718526 | Val: 0.722842 | LR: 2.50e-04 | Best: 0.721159 | Time: 23s
-Epoch [ 36/100] Train: 0.717587 | Val: 0.721678 | LR: 2.50e-04 | Best: 0.721159 | Time: 24s
-Epoch [ 37/100] Train: 0.717727 | Val: 0.722040 | LR: 2.50e-04 | Best: 0.721159 | Time: 25s
-Epoch [ 38/100] Train: 0.717559 | Val: 0.721980 | LR: 2.50e-04 | Best: 0.721159 | Time: 25s
-Epoch [ 39/100] Train: 0.717129 | Val: 0.722233 | LR: 2.50e-04 | Best: 0.721159 | Time: 26s
-Epoch [ 40/100] Train: 0.717270 | Val: 0.721936 | LR: 2.50e-04 | Best: 0.721159 | Time: 27s
-Epoch [ 41/100] Train: 0.717309 | Val: 0.721632 | LR: 2.50e-04 | Best: 0.721159 | Time: 27s
-Epoch [ 42/100] Train: 0.716869 | Val: 0.722158 | LR: 2.50e-04 | Best: 0.721159 | Time: 28s
+Epoch [ 32/100] Train: 0.719213 | Val: 0.721184 | LR: 5.00e-04 | Best: 0.721159 | Time: 22s
+Epoch [ 33/100] Train: 0.718820 | Val: 0.722531 | LR: 5.00e-04 | Best: 0.721159 | Time: 23s
+Epoch [ 34/100] Train: 0.719037 | Val: 0.722181 | LR: 5.00e-04 | Best: 0.721159 | Time: 24s
+Epoch [ 35/100] Train: 0.718526 | Val: 0.722842 | LR: 2.50e-04 | Best: 0.721159 | Time: 24s
+Epoch [ 36/100] Train: 0.717587 | Val: 0.721678 | LR: 2.50e-04 | Best: 0.721159 | Time: 25s
+Epoch [ 37/100] Train: 0.717727 | Val: 0.722040 | LR: 2.50e-04 | Best: 0.721159 | Time: 26s
+Epoch [ 38/100] Train: 0.717559 | Val: 0.721980 | LR: 2.50e-04 | Best: 0.721159 | Time: 27s
+Epoch [ 39/100] Train: 0.717129 | Val: 0.722233 | LR: 2.50e-04 | Best: 0.721159 | Time: 27s
+Epoch [ 40/100] Train: 0.717270 | Val: 0.721936 | LR: 2.50e-04 | Best: 0.721159 | Time: 28s
+Epoch [ 41/100] Train: 0.717309 | Val: 0.721632 | LR: 2.50e-04 | Best: 0.721159 | Time: 29s
+Epoch [ 42/100] Train: 0.716869 | Val: 0.722158 | LR: 2.50e-04 | Best: 0.721159 | Time: 29s
 
 Early stopping at epoch 42 (no improvement for 15 epochs)
 
-Training complete in 27.9s
+Training complete in 29.2s
 Best validation loss: 0.721159
 
 --- Training deterministic_lstm (loss=mse) ---
@@ -135,68 +135,68 @@ Epoch [  1/100] Train: 0.349134 | Val: 0.282909 | LR: 1.00e-03 | Best: 0.282909 
 Epoch [  2/100] Train: 0.272455 | Val: 0.272461 | LR: 1.00e-03 | Best: 0.272461 | Time: 1s
 Epoch [  3/100] Train: 0.269595 | Val: 0.272407 | LR: 1.00e-03 | Best: 0.272407 | Time: 2s
 Epoch [  4/100] Train: 0.269980 | Val: 0.268610 | LR: 1.00e-03 | Best: 0.268610 | Time: 2s
-Epoch [  5/100] Train: 0.269015 | Val: 0.268972 | LR: 1.00e-03 | Best: 0.268610 | Time: 3s
+Epoch [  5/100] Train: 0.269015 | Val: 0.268972 | LR: 1.00e-03 | Best: 0.268610 | Time: 2s
 Epoch [  6/100] Train: 0.268092 | Val: 0.268437 | LR: 1.00e-03 | Best: 0.268437 | Time: 3s
-Epoch [  7/100] Train: 0.268964 | Val: 0.270128 | LR: 1.00e-03 | Best: 0.268437 | Time: 4s
+Epoch [  7/100] Train: 0.268964 | Val: 0.270128 | LR: 1.00e-03 | Best: 0.268437 | Time: 3s
 Epoch [  8/100] Train: 0.269286 | Val: 0.269051 | LR: 1.00e-03 | Best: 0.268437 | Time: 4s
-Epoch [  9/100] Train: 0.269035 | Val: 0.267622 | LR: 1.00e-03 | Best: 0.267622 | Time: 5s
+Epoch [  9/100] Train: 0.269035 | Val: 0.267622 | LR: 1.00e-03 | Best: 0.267622 | Time: 4s
 Epoch [ 10/100] Train: 0.268007 | Val: 0.269415 | LR: 1.00e-03 | Best: 0.267622 | Time: 5s
-Epoch [ 11/100] Train: 0.268353 | Val: 0.267885 | LR: 1.00e-03 | Best: 0.267622 | Time: 6s
-Epoch [ 12/100] Train: 0.268080 | Val: 0.270066 | LR: 1.00e-03 | Best: 0.267622 | Time: 7s
-Epoch [ 13/100] Train: 0.267995 | Val: 0.267519 | LR: 1.00e-03 | Best: 0.267519 | Time: 7s
-Epoch [ 14/100] Train: 0.268235 | Val: 0.268895 | LR: 1.00e-03 | Best: 0.267519 | Time: 8s
-Epoch [ 15/100] Train: 0.267993 | Val: 0.267792 | LR: 1.00e-03 | Best: 0.267519 | Time: 8s
-Epoch [ 16/100] Train: 0.267444 | Val: 0.269743 | LR: 1.00e-03 | Best: 0.267519 | Time: 9s
-Epoch [ 17/100] Train: 0.267821 | Val: 0.267364 | LR: 1.00e-03 | Best: 0.267364 | Time: 9s
-Epoch [ 18/100] Train: 0.268032 | Val: 0.269697 | LR: 1.00e-03 | Best: 0.267364 | Time: 10s
-Epoch [ 19/100] Train: 0.267821 | Val: 0.267588 | LR: 1.00e-03 | Best: 0.267364 | Time: 10s
-Epoch [ 20/100] Train: 0.268114 | Val: 0.267946 | LR: 1.00e-03 | Best: 0.267364 | Time: 11s
-Epoch [ 21/100] Train: 0.267484 | Val: 0.269193 | LR: 1.00e-03 | Best: 0.267364 | Time: 12s
-Epoch [ 22/100] Train: 0.267431 | Val: 0.267363 | LR: 1.00e-03 | Best: 0.267363 | Time: 12s
-Epoch [ 23/100] Train: 0.267803 | Val: 0.267428 | LR: 1.00e-03 | Best: 0.267363 | Time: 13s
-Epoch [ 24/100] Train: 0.267674 | Val: 0.268016 | LR: 1.00e-03 | Best: 0.267363 | Time: 13s
-Epoch [ 25/100] Train: 0.267952 | Val: 0.269185 | LR: 5.00e-04 | Best: 0.267363 | Time: 14s
-Epoch [ 26/100] Train: 0.267066 | Val: 0.267646 | LR: 5.00e-04 | Best: 0.267363 | Time: 14s
-Epoch [ 27/100] Train: 0.266940 | Val: 0.268789 | LR: 5.00e-04 | Best: 0.267363 | Time: 15s
-Epoch [ 28/100] Train: 0.267136 | Val: 0.267858 | LR: 5.00e-04 | Best: 0.267363 | Time: 16s
-Epoch [ 29/100] Train: 0.266863 | Val: 0.267872 | LR: 5.00e-04 | Best: 0.267363 | Time: 16s
-Epoch [ 30/100] Train: 0.266394 | Val: 0.268111 | LR: 5.00e-04 | Best: 0.267363 | Time: 17s
-Epoch [ 31/100] Train: 0.266507 | Val: 0.267647 | LR: 5.00e-04 | Best: 0.267363 | Time: 18s
-Epoch [ 32/100] Train: 0.266850 | Val: 0.267405 | LR: 5.00e-04 | Best: 0.267363 | Time: 18s
-Epoch [ 33/100] Train: 0.266649 | Val: 0.267374 | LR: 2.50e-04 | Best: 0.267363 | Time: 19s
-Epoch [ 34/100] Train: 0.266129 | Val: 0.267335 | LR: 2.50e-04 | Best: 0.267335 | Time: 19s
-Epoch [ 35/100] Train: 0.266150 | Val: 0.267363 | LR: 2.50e-04 | Best: 0.267335 | Time: 20s
-Epoch [ 36/100] Train: 0.266128 | Val: 0.267447 | LR: 2.50e-04 | Best: 0.267335 | Time: 20s
-Epoch [ 37/100] Train: 0.266016 | Val: 0.267674 | LR: 2.50e-04 | Best: 0.267335 | Time: 21s
-Epoch [ 38/100] Train: 0.266038 | Val: 0.267920 | LR: 2.50e-04 | Best: 0.267335 | Time: 22s
-Epoch [ 39/100] Train: 0.266145 | Val: 0.267532 | LR: 2.50e-04 | Best: 0.267335 | Time: 22s
-Epoch [ 40/100] Train: 0.266001 | Val: 0.267799 | LR: 2.50e-04 | Best: 0.267335 | Time: 23s
-Epoch [ 41/100] Train: 0.265981 | Val: 0.267662 | LR: 2.50e-04 | Best: 0.267335 | Time: 23s
-Epoch [ 42/100] Train: 0.266064 | Val: 0.267259 | LR: 2.50e-04 | Best: 0.267259 | Time: 24s
-Epoch [ 43/100] Train: 0.265792 | Val: 0.267204 | LR: 2.50e-04 | Best: 0.267204 | Time: 24s
-Epoch [ 44/100] Train: 0.265914 | Val: 0.267510 | LR: 2.50e-04 | Best: 0.267204 | Time: 25s
-Epoch [ 45/100] Train: 0.266038 | Val: 0.267503 | LR: 2.50e-04 | Best: 0.267204 | Time: 25s
-Epoch [ 46/100] Train: 0.266087 | Val: 0.268018 | LR: 2.50e-04 | Best: 0.267204 | Time: 26s
-Epoch [ 47/100] Train: 0.265889 | Val: 0.267560 | LR: 2.50e-04 | Best: 0.267204 | Time: 26s
-Epoch [ 48/100] Train: 0.265798 | Val: 0.267332 | LR: 2.50e-04 | Best: 0.267204 | Time: 27s
-Epoch [ 49/100] Train: 0.265845 | Val: 0.267901 | LR: 2.50e-04 | Best: 0.267204 | Time: 27s
-Epoch [ 50/100] Train: 0.265735 | Val: 0.267841 | LR: 2.50e-04 | Best: 0.267204 | Time: 28s
-Epoch [ 51/100] Train: 0.265641 | Val: 0.267875 | LR: 1.25e-04 | Best: 0.267204 | Time: 28s
-Epoch [ 52/100] Train: 0.265505 | Val: 0.267468 | LR: 1.25e-04 | Best: 0.267204 | Time: 29s
-Epoch [ 53/100] Train: 0.265380 | Val: 0.267513 | LR: 1.25e-04 | Best: 0.267204 | Time: 29s
-Epoch [ 54/100] Train: 0.265390 | Val: 0.267586 | LR: 1.25e-04 | Best: 0.267204 | Time: 30s
-Epoch [ 55/100] Train: 0.265177 | Val: 0.267636 | LR: 1.25e-04 | Best: 0.267204 | Time: 30s
-Epoch [ 56/100] Train: 0.265382 | Val: 0.267715 | LR: 1.25e-04 | Best: 0.267204 | Time: 31s
-Epoch [ 57/100] Train: 0.265419 | Val: 0.267847 | LR: 1.25e-04 | Best: 0.267204 | Time: 31s
-Epoch [ 58/100] Train: 0.265220 | Val: 0.267541 | LR: 1.25e-04 | Best: 0.267204 | Time: 32s
+Epoch [ 11/100] Train: 0.268353 | Val: 0.267885 | LR: 1.00e-03 | Best: 0.267622 | Time: 5s
+Epoch [ 12/100] Train: 0.268080 | Val: 0.270066 | LR: 1.00e-03 | Best: 0.267622 | Time: 6s
+Epoch [ 13/100] Train: 0.267995 | Val: 0.267519 | LR: 1.00e-03 | Best: 0.267519 | Time: 6s
+Epoch [ 14/100] Train: 0.268235 | Val: 0.268895 | LR: 1.00e-03 | Best: 0.267519 | Time: 7s
+Epoch [ 15/100] Train: 0.267993 | Val: 0.267792 | LR: 1.00e-03 | Best: 0.267519 | Time: 7s
+Epoch [ 16/100] Train: 0.267444 | Val: 0.269743 | LR: 1.00e-03 | Best: 0.267519 | Time: 8s
+Epoch [ 17/100] Train: 0.267821 | Val: 0.267364 | LR: 1.00e-03 | Best: 0.267364 | Time: 8s
+Epoch [ 18/100] Train: 0.268032 | Val: 0.269697 | LR: 1.00e-03 | Best: 0.267364 | Time: 9s
+Epoch [ 19/100] Train: 0.267821 | Val: 0.267588 | LR: 1.00e-03 | Best: 0.267364 | Time: 9s
+Epoch [ 20/100] Train: 0.268114 | Val: 0.267946 | LR: 1.00e-03 | Best: 0.267364 | Time: 10s
+Epoch [ 21/100] Train: 0.267484 | Val: 0.269193 | LR: 1.00e-03 | Best: 0.267364 | Time: 11s
+Epoch [ 22/100] Train: 0.267431 | Val: 0.267363 | LR: 1.00e-03 | Best: 0.267363 | Time: 11s
+Epoch [ 23/100] Train: 0.267803 | Val: 0.267428 | LR: 1.00e-03 | Best: 0.267363 | Time: 12s
+Epoch [ 24/100] Train: 0.267674 | Val: 0.268016 | LR: 1.00e-03 | Best: 0.267363 | Time: 12s
+Epoch [ 25/100] Train: 0.267952 | Val: 0.269185 | LR: 5.00e-04 | Best: 0.267363 | Time: 13s
+Epoch [ 26/100] Train: 0.267066 | Val: 0.267646 | LR: 5.00e-04 | Best: 0.267363 | Time: 13s
+Epoch [ 27/100] Train: 0.266940 | Val: 0.268789 | LR: 5.00e-04 | Best: 0.267363 | Time: 14s
+Epoch [ 28/100] Train: 0.267136 | Val: 0.267858 | LR: 5.00e-04 | Best: 0.267363 | Time: 14s
+Epoch [ 29/100] Train: 0.266863 | Val: 0.267872 | LR: 5.00e-04 | Best: 0.267363 | Time: 15s
+Epoch [ 30/100] Train: 0.266394 | Val: 0.268111 | LR: 5.00e-04 | Best: 0.267363 | Time: 15s
+Epoch [ 31/100] Train: 0.266507 | Val: 0.267647 | LR: 5.00e-04 | Best: 0.267363 | Time: 16s
+Epoch [ 32/100] Train: 0.266850 | Val: 0.267405 | LR: 5.00e-04 | Best: 0.267363 | Time: 16s
+Epoch [ 33/100] Train: 0.266649 | Val: 0.267374 | LR: 2.50e-04 | Best: 0.267363 | Time: 17s
+Epoch [ 34/100] Train: 0.266129 | Val: 0.267335 | LR: 2.50e-04 | Best: 0.267335 | Time: 17s
+Epoch [ 35/100] Train: 0.266150 | Val: 0.267363 | LR: 2.50e-04 | Best: 0.267335 | Time: 17s
+Epoch [ 36/100] Train: 0.266128 | Val: 0.267447 | LR: 2.50e-04 | Best: 0.267335 | Time: 18s
+Epoch [ 37/100] Train: 0.266016 | Val: 0.267674 | LR: 2.50e-04 | Best: 0.267335 | Time: 18s
+Epoch [ 38/100] Train: 0.266038 | Val: 0.267920 | LR: 2.50e-04 | Best: 0.267335 | Time: 19s
+Epoch [ 39/100] Train: 0.266145 | Val: 0.267532 | LR: 2.50e-04 | Best: 0.267335 | Time: 19s
+Epoch [ 40/100] Train: 0.266001 | Val: 0.267799 | LR: 2.50e-04 | Best: 0.267335 | Time: 20s
+Epoch [ 41/100] Train: 0.265981 | Val: 0.267662 | LR: 2.50e-04 | Best: 0.267335 | Time: 20s
+Epoch [ 42/100] Train: 0.266064 | Val: 0.267259 | LR: 2.50e-04 | Best: 0.267259 | Time: 21s
+Epoch [ 43/100] Train: 0.265792 | Val: 0.267204 | LR: 2.50e-04 | Best: 0.267204 | Time: 21s
+Epoch [ 44/100] Train: 0.265914 | Val: 0.267510 | LR: 2.50e-04 | Best: 0.267204 | Time: 22s
+Epoch [ 45/100] Train: 0.266038 | Val: 0.267503 | LR: 2.50e-04 | Best: 0.267204 | Time: 22s
+Epoch [ 46/100] Train: 0.266087 | Val: 0.268018 | LR: 2.50e-04 | Best: 0.267204 | Time: 23s
+Epoch [ 47/100] Train: 0.265889 | Val: 0.267560 | LR: 2.50e-04 | Best: 0.267204 | Time: 23s
+Epoch [ 48/100] Train: 0.265798 | Val: 0.267332 | LR: 2.50e-04 | Best: 0.267204 | Time: 24s
+Epoch [ 49/100] Train: 0.265845 | Val: 0.267901 | LR: 2.50e-04 | Best: 0.267204 | Time: 24s
+Epoch [ 50/100] Train: 0.265735 | Val: 0.267841 | LR: 2.50e-04 | Best: 0.267204 | Time: 25s
+Epoch [ 51/100] Train: 0.265641 | Val: 0.267875 | LR: 1.25e-04 | Best: 0.267204 | Time: 25s
+Epoch [ 52/100] Train: 0.265505 | Val: 0.267468 | LR: 1.25e-04 | Best: 0.267204 | Time: 26s
+Epoch [ 53/100] Train: 0.265380 | Val: 0.267513 | LR: 1.25e-04 | Best: 0.267204 | Time: 26s
+Epoch [ 54/100] Train: 0.265390 | Val: 0.267586 | LR: 1.25e-04 | Best: 0.267204 | Time: 27s
+Epoch [ 55/100] Train: 0.265177 | Val: 0.267636 | LR: 1.25e-04 | Best: 0.267204 | Time: 27s
+Epoch [ 56/100] Train: 0.265382 | Val: 0.267715 | LR: 1.25e-04 | Best: 0.267204 | Time: 28s
+Epoch [ 57/100] Train: 0.265419 | Val: 0.267847 | LR: 1.25e-04 | Best: 0.267204 | Time: 28s
+Epoch [ 58/100] Train: 0.265220 | Val: 0.267541 | LR: 1.25e-04 | Best: 0.267204 | Time: 29s
 
 Early stopping at epoch 58 (no improvement for 15 epochs)
 
-Training complete in 31.8s
+Training complete in 28.8s
 Best validation loss: 0.267204
 
 --- Training deterministic_gru (loss=mse) ---
-Epoch [  1/100] Train: 0.328437 | Val: 0.270695 | LR: 1.00e-03 | Best: 0.270695 | Time: 0s
+Epoch [  1/100] Train: 0.328437 | Val: 0.270695 | LR: 1.00e-03 | Best: 0.270695 | Time: 1s
 Epoch [  2/100] Train: 0.270732 | Val: 0.269877 | LR: 1.00e-03 | Best: 0.269877 | Time: 1s
 Epoch [  3/100] Train: 0.270162 | Val: 0.269630 | LR: 1.00e-03 | Best: 0.269630 | Time: 1s
 Epoch [  4/100] Train: 0.269357 | Val: 0.269092 | LR: 1.00e-03 | Best: 0.269092 | Time: 2s
@@ -204,7 +204,7 @@ Epoch [  5/100] Train: 0.269950 | Val: 0.269703 | LR: 1.00e-03 | Best: 0.269092 
 Epoch [  6/100] Train: 0.269088 | Val: 0.269315 | LR: 1.00e-03 | Best: 0.269092 | Time: 3s
 Epoch [  7/100] Train: 0.268777 | Val: 0.269431 | LR: 1.00e-03 | Best: 0.269092 | Time: 3s
 Epoch [  8/100] Train: 0.268687 | Val: 0.272323 | LR: 1.00e-03 | Best: 0.269092 | Time: 4s
-Epoch [  9/100] Train: 0.268018 | Val: 0.268247 | LR: 1.00e-03 | Best: 0.268247 | Time: 4s
+Epoch [  9/100] Train: 0.268018 | Val: 0.268247 | LR: 1.00e-03 | Best: 0.268247 | Time: 5s
 Epoch [ 10/100] Train: 0.268397 | Val: 0.267885 | LR: 1.00e-03 | Best: 0.267885 | Time: 5s
 Epoch [ 11/100] Train: 0.268131 | Val: 0.268182 | LR: 1.00e-03 | Best: 0.267885 | Time: 5s
 Epoch [ 12/100] Train: 0.268308 | Val: 0.268484 | LR: 1.00e-03 | Best: 0.267885 | Time: 6s
@@ -216,22 +216,81 @@ Epoch [ 17/100] Train: 0.267276 | Val: 0.268675 | LR: 1.00e-03 | Best: 0.267242 
 Epoch [ 18/100] Train: 0.267049 | Val: 0.267253 | LR: 1.00e-03 | Best: 0.267242 | Time: 9s
 Epoch [ 19/100] Train: 0.267643 | Val: 0.268893 | LR: 1.00e-03 | Best: 0.267242 | Time: 9s
 Epoch [ 20/100] Train: 0.267542 | Val: 0.268143 | LR: 1.00e-03 | Best: 0.267242 | Time: 10s
-Epoch [ 21/100] Train: 0.266619 | Val: 0.268160 | LR: 1.00e-03 | Best: 0.267242 | Time: 11s
+Epoch [ 21/100] Train: 0.266619 | Val: 0.268160 | LR: 1.00e-03 | Best: 0.267242 | Time: 10s
 Epoch [ 22/100] Train: 0.266618 | Val: 0.268668 | LR: 1.00e-03 | Best: 0.267242 | Time: 11s
-Epoch [ 23/100] Train: 0.267091 | Val: 0.268593 | LR: 1.00e-03 | Best: 0.267242 | Time: 12s
+Epoch [ 23/100] Train: 0.267091 | Val: 0.268593 | LR: 1.00e-03 | Best: 0.267242 | Time: 11s
 Epoch [ 24/100] Train: 0.267424 | Val: 0.268949 | LR: 5.00e-04 | Best: 0.267242 | Time: 12s
-Epoch [ 25/100] Train: 0.266130 | Val: 0.267796 | LR: 5.00e-04 | Best: 0.267242 | Time: 13s
+Epoch [ 25/100] Train: 0.266130 | Val: 0.267796 | LR: 5.00e-04 | Best: 0.267242 | Time: 12s
 Epoch [ 26/100] Train: 0.265809 | Val: 0.267471 | LR: 5.00e-04 | Best: 0.267242 | Time: 13s
-Epoch [ 27/100] Train: 0.266183 | Val: 0.267708 | LR: 5.00e-04 | Best: 0.267242 | Time: 14s
-Epoch [ 28/100] Train: 0.265897 | Val: 0.268404 | LR: 5.00e-04 | Best: 0.267242 | Time: 14s
-Epoch [ 29/100] Train: 0.266133 | Val: 0.270494 | LR: 5.00e-04 | Best: 0.267242 | Time: 15s
-Epoch [ 30/100] Train: 0.266043 | Val: 0.268147 | LR: 5.00e-04 | Best: 0.267242 | Time: 16s
-Epoch [ 31/100] Train: 0.265996 | Val: 0.267682 | LR: 5.00e-04 | Best: 0.267242 | Time: 16s
+Epoch [ 27/100] Train: 0.266183 | Val: 0.267708 | LR: 5.00e-04 | Best: 0.267242 | Time: 13s
+Epoch [ 28/100] Train: 0.265897 | Val: 0.268404 | LR: 5.00e-04 | Best: 0.267242 | Time: 13s
+Epoch [ 29/100] Train: 0.266133 | Val: 0.270494 | LR: 5.00e-04 | Best: 0.267242 | Time: 14s
+Epoch [ 30/100] Train: 0.266043 | Val: 0.268147 | LR: 5.00e-04 | Best: 0.267242 | Time: 14s
+Epoch [ 31/100] Train: 0.265996 | Val: 0.267682 | LR: 5.00e-04 | Best: 0.267242 | Time: 15s
 
 Early stopping at epoch 31 (no improvement for 15 epochs)
 
-Training complete in 16.0s
+Training complete in 14.8s
 Best validation loss: 0.267242
+
+--- Training tranad (loss=tranad) ---
+Epoch [  1/100] Train: 0.775027 | Val: 0.678742 | LR: 1.00e-03 | Best: 0.678742 | Time: 2s
+Epoch [  2/100] Train: 0.690553 | Val: 0.670489 | LR: 1.00e-03 | Best: 0.670489 | Time: 4s
+Epoch [  3/100] Train: 0.680684 | Val: 0.683659 | LR: 1.00e-03 | Best: 0.670489 | Time: 6s
+Epoch [  4/100] Train: 0.677513 | Val: 0.670922 | LR: 1.00e-03 | Best: 0.670489 | Time: 9s
+Epoch [  5/100] Train: 0.674598 | Val: 0.657951 | LR: 1.00e-03 | Best: 0.657951 | Time: 11s
+Epoch [  6/100] Train: 0.664077 | Val: 0.656524 | LR: 1.00e-03 | Best: 0.656524 | Time: 13s
+Epoch [  7/100] Train: 0.662005 | Val: 0.655908 | LR: 1.00e-03 | Best: 0.655908 | Time: 15s
+Epoch [  8/100] Train: 0.657235 | Val: 0.649499 | LR: 1.00e-03 | Best: 0.649499 | Time: 17s
+Epoch [  9/100] Train: 0.652104 | Val: 0.652016 | LR: 1.00e-03 | Best: 0.649499 | Time: 19s
+Epoch [ 10/100] Train: 0.647971 | Val: 0.651776 | LR: 1.00e-03 | Best: 0.649499 | Time: 22s
+Epoch [ 11/100] Train: 0.643864 | Val: 0.649955 | LR: 1.00e-03 | Best: 0.649499 | Time: 24s
+Epoch [ 12/100] Train: 0.641236 | Val: 0.641970 | LR: 1.00e-03 | Best: 0.641970 | Time: 26s
+Epoch [ 13/100] Train: 0.637338 | Val: 0.643170 | LR: 1.00e-03 | Best: 0.641970 | Time: 28s
+Epoch [ 14/100] Train: 0.632145 | Val: 0.643463 | LR: 1.00e-03 | Best: 0.641970 | Time: 31s
+Epoch [ 15/100] Train: 0.629427 | Val: 0.643442 | LR: 1.00e-03 | Best: 0.641970 | Time: 33s
+Epoch [ 16/100] Train: 0.626596 | Val: 0.633967 | LR: 1.00e-03 | Best: 0.633967 | Time: 35s
+Epoch [ 17/100] Train: 0.622213 | Val: 0.636988 | LR: 1.00e-03 | Best: 0.633967 | Time: 38s
+Epoch [ 18/100] Train: 0.621605 | Val: 0.637611 | LR: 1.00e-03 | Best: 0.633967 | Time: 40s
+Epoch [ 19/100] Train: 0.614092 | Val: 0.639872 | LR: 1.00e-03 | Best: 0.633967 | Time: 42s
+Epoch [ 20/100] Train: 0.612747 | Val: 0.632408 | LR: 1.00e-03 | Best: 0.632408 | Time: 45s
+Epoch [ 21/100] Train: 0.608409 | Val: 0.627486 | LR: 1.00e-03 | Best: 0.627486 | Time: 47s
+Epoch [ 22/100] Train: 0.602879 | Val: 0.626703 | LR: 1.00e-03 | Best: 0.626703 | Time: 50s
+Epoch [ 23/100] Train: 0.597015 | Val: 0.632448 | LR: 1.00e-03 | Best: 0.626703 | Time: 52s
+Epoch [ 24/100] Train: 0.594278 | Val: 0.625327 | LR: 1.00e-03 | Best: 0.625327 | Time: 54s
+Epoch [ 25/100] Train: 0.587548 | Val: 0.623833 | LR: 1.00e-03 | Best: 0.623833 | Time: 57s
+Epoch [ 26/100] Train: 0.584408 | Val: 0.625317 | LR: 1.00e-03 | Best: 0.623833 | Time: 59s
+Epoch [ 27/100] Train: 0.581636 | Val: 0.623047 | LR: 1.00e-03 | Best: 0.623047 | Time: 62s
+Epoch [ 28/100] Train: 0.573993 | Val: 0.621339 | LR: 1.00e-03 | Best: 0.621339 | Time: 64s
+Epoch [ 29/100] Train: 0.569553 | Val: 0.626397 | LR: 1.00e-03 | Best: 0.621339 | Time: 67s
+Epoch [ 30/100] Train: 0.562657 | Val: 0.626665 | LR: 1.00e-03 | Best: 0.621339 | Time: 69s
+Epoch [ 31/100] Train: 0.557695 | Val: 0.624622 | LR: 1.00e-03 | Best: 0.621339 | Time: 72s
+Epoch [ 32/100] Train: 0.553956 | Val: 0.619905 | LR: 1.00e-03 | Best: 0.619905 | Time: 74s
+Epoch [ 33/100] Train: 0.548865 | Val: 0.625600 | LR: 1.00e-03 | Best: 0.619905 | Time: 77s
+Epoch [ 34/100] Train: 0.540918 | Val: 0.629810 | LR: 1.00e-03 | Best: 0.619905 | Time: 79s
+Epoch [ 35/100] Train: 0.535958 | Val: 0.626825 | LR: 1.00e-03 | Best: 0.619905 | Time: 82s
+Epoch [ 36/100] Train: 0.529449 | Val: 0.628602 | LR: 1.00e-03 | Best: 0.619905 | Time: 84s
+Epoch [ 37/100] Train: 0.524967 | Val: 0.621813 | LR: 1.00e-03 | Best: 0.619905 | Time: 87s
+Epoch [ 38/100] Train: 0.517865 | Val: 0.622719 | LR: 1.00e-03 | Best: 0.619905 | Time: 89s
+Epoch [ 39/100] Train: 0.512368 | Val: 0.631509 | LR: 1.00e-03 | Best: 0.619905 | Time: 91s
+Epoch [ 40/100] Train: 0.506491 | Val: 0.619459 | LR: 1.00e-03 | Best: 0.619459 | Time: 93s
+Epoch [ 41/100] Train: 0.497300 | Val: 0.629578 | LR: 1.00e-03 | Best: 0.619459 | Time: 96s
+Epoch [ 42/100] Train: 0.492374 | Val: 0.621454 | LR: 1.00e-03 | Best: 0.619459 | Time: 98s
+Epoch [ 43/100] Train: 0.486052 | Val: 0.632685 | LR: 1.00e-03 | Best: 0.619459 | Time: 100s
+Epoch [ 44/100] Train: 0.478193 | Val: 0.641218 | LR: 1.00e-03 | Best: 0.619459 | Time: 102s
+Epoch [ 45/100] Train: 0.472311 | Val: 0.635563 | LR: 1.00e-03 | Best: 0.619459 | Time: 104s
+Epoch [ 46/100] Train: 0.467677 | Val: 0.628096 | LR: 1.00e-03 | Best: 0.619459 | Time: 107s
+Epoch [ 47/100] Train: 0.460874 | Val: 0.624782 | LR: 1.00e-03 | Best: 0.619459 | Time: 109s
+Epoch [ 48/100] Train: 0.457289 | Val: 0.627614 | LR: 5.00e-04 | Best: 0.619459 | Time: 112s
+Epoch [ 49/100] Train: 0.436771 | Val: 0.632823 | LR: 5.00e-04 | Best: 0.619459 | Time: 114s
+Epoch [ 50/100] Train: 0.427270 | Val: 0.630031 | LR: 5.00e-04 | Best: 0.619459 | Time: 116s
+Epoch [ 51/100] Train: 0.422883 | Val: 0.635277 | LR: 5.00e-04 | Best: 0.619459 | Time: 119s
+Epoch [ 52/100] Train: 0.417149 | Val: 0.634443 | LR: 5.00e-04 | Best: 0.619459 | Time: 121s
+Epoch [ 53/100] Train: 0.411580 | Val: 0.641062 | LR: 5.00e-04 | Best: 0.619459 | Time: 124s
+Epoch [ 54/100] Train: 0.406169 | Val: 0.634602 | LR: 5.00e-04 | Best: 0.619459 | Time: 126s
+Epoch [ 55/100] Train: 0.402529 | Val: 0.633002 | LR: 5.00e-04 | Best: 0.619459 | Time: 129s
+
+Early stopping at epoch 55 (no improvement for 15 epochs)
 
 --- Non-neural Baselines ---
 Naive Persistence — Test MSE: 0.540655, MAE: 0.569849
@@ -265,6 +324,12 @@ Evaluating deterministic_gru...
   Mean σ: 1.000000
   Per-sensor MAE: ['0.5966', '0.4170', '0.3791', '0.5621', '0.4421', '0.3792', '0.5067']
 
+Evaluating tranad...
+  MSE: 0.473946
+  MAE: 0.530197
+  Mean σ: 1.000000
+  Per-sensor MAE: ['0.6498', '0.4643', '0.4411', '0.6527', '0.5153', '0.4633', '0.5248']
+
 ======================================================================
 PHASE 4: Anomaly Scoring & Degradation Analysis
 ======================================================================
@@ -291,117 +356,118 @@ Figures saved to outputs/figures/
 Results saved to outputs/results/
 
 ✓ Stage A Complete!
-PS C:\Users\Stepan\Desktop\C-MAPSS_project\C-MAPSS_Drift-Anomaly_Distinction> & C:\Users\Stepan\AppData\Local\Programs\Python\Python313\python.exe c:/Users/Stepan/Desktop/C-MAPSS_project/C-MAPSS_Drift-Anomaly_Distinction/experiments/02_synthetic_evaluation.py
+
 ======================================================================
-Stage C: Anomaly Detection — NLL vs URD (Stationarity) | Model: Gaussian GRU
+Stage C: URD Baseline vs TranAD | Same FD001 / sensors / window / healthy-only setup
 ======================================================================
 
-[1] Loading data and model...
-[2] Fitting scorers on validation data...
-   NLL thresholds: {95.0: 1.9007013159020216, 97.5: 2.460978368031352, 99.0: 3.339249241510934}
-   URD combined thresholds: {95.0: 2.1035484612125956, 97.5: 2.8580143362751533, 99.0: 3.7533940315246586}
+[1] Loading data and models...
+[2] Fitting scorers on healthy validation windows...
+   URD thresholds:    {95.0: 1.1134785622111563, 97.5: 1.5164280934679057, 99.0: 2.2165303451989207}
+   TranAD thresholds: {95.0: 1.8875038623809814, 97.5: 2.553856611251831, 99.0: 3.4560372829437256}
 [3] Generating synthetic anomalies...
-   15 test engines
    1080 injected trajectories
 
 ======================================================================
-EVALUATION: NLL-Only Scoring (Baseline)
+EVALUATION: URD Baseline
 ======================================================================
 
-   Overall: ROC-AUC=0.7477  PR-AUC=0.3739
+   Overall: ROC-AUC=0.8636  PR-AUC=0.4250
 
    Per Anomaly Type:
-                   drop: ROC=0.9396  PR=0.4599
-            noise_burst: ROC=0.8173  PR=0.4570
-      persistent_offset: ROC=0.9603  PR=0.7134
-          sensor_freeze: ROC=0.4398  PR=0.0347
-                  spike: ROC=0.9487  PR=0.5039
+                   drop: ROC=0.9295  PR=0.2151
+            noise_burst: ROC=0.8108  PR=0.3606
+      persistent_offset: ROC=0.9481  PR=0.5748
+          sensor_freeze: ROC=0.8230  PR=0.4467
+                  spike: ROC=0.9280  PR=0.2798
 
-   p95.0: P=0.105 R=0.578 F1=0.177 | EventR=0.807 Delay=0.6
+   p95.0: P=0.199 R=0.708 F1=0.311 | EventP=0.117 EventR=0.938 EventF1=0.209 | Delay=0.9 | FP/1k=98.2 | FP/eng=16.53
 
-   p97.5: P=0.137 R=0.543 F1=0.219 | EventR=0.762 Delay=0.5
+   p97.5: P=0.258 R=0.646 F1=0.369 | EventP=0.160 EventR=0.918 EventF1=0.273 | Delay=1.1 | FP/1k=63.9 | FP/eng=10.76
 
-   p99.0: P=0.186 R=0.500 F1=0.271 | EventR=0.720 Delay=0.5
+   p99.0: P=0.356 R=0.542 F1=0.430 | EventP=0.238 EventR=0.862 EventF1=0.373 | Delay=1.5 | FP/1k=33.8 | FP/eng=5.69
 
 ======================================================================
-EVALUATION: URD Combined Scoring (Deviation + Stationarity)
+EVALUATION: TranAD
 ======================================================================
 
-   Overall: ROC-AUC=0.8395  PR-AUC=0.4295
+   Overall: ROC-AUC=0.7379  PR-AUC=0.2475
 
    Per Anomaly Type:
-                   drop: ROC=0.9356  PR=0.3120
-            noise_burst: ROC=0.8126  PR=0.3967
-      persistent_offset: ROC=0.9556  PR=0.6335
-          sensor_freeze: ROC=0.7367  PR=0.3531
-                  spike: ROC=0.9398  PR=0.3339
+                   drop: ROC=0.9137  PR=0.2311
+            noise_burst: ROC=0.7912  PR=0.2946
+      persistent_offset: ROC=0.9368  PR=0.5302
+          sensor_freeze: ROC=0.4621  PR=0.0362
+                  spike: ROC=0.9143  PR=0.2242
 
-   p95.0: P=0.132 R=0.717 F1=0.223 | EventR=0.972 Delay=1.1
+   p95.0: P=0.090 R=0.581 F1=0.156 | EventP=0.081 EventR=0.820 EventF1=0.147 | Delay=0.6 | FP/1k=202.0 | FP/eng=34.00
 
-   p97.5: P=0.180 R=0.666 F1=0.283 | EventR=0.926 Delay=1.1
+   p97.5: P=0.106 R=0.531 F1=0.177 | EventP=0.100 EventR=0.780 EventF1=0.177 | Delay=0.6 | FP/1k=154.1 | FP/eng=25.95
 
-   p99.0: P=0.246 R=0.607 F1=0.350 | EventR=0.863 Delay=1.2
+   p99.0: P=0.129 R=0.472 F1=0.202 | EventP=0.129 EventR=0.721 EventF1=0.219 | Delay=0.7 | FP/1k=110.3 | FP/eng=18.56
 
-======================================================================
-HEAD-TO-HEAD: NLL-only vs URD (Stationarity)
-======================================================================
+==================================================================================
+HEAD-TO-HEAD: URD Baseline vs TranAD
+==================================================================================
 
-Anomaly Type             NLL ROC   URD ROC    Change    NLL PR    URD PR    Change
---------------------------------------------------------------------------------
-drop                      0.9396    0.9356   -0.0040    0.4599    0.3120   -0.1479
-noise_burst               0.8173    0.8126   -0.0047    0.4570    0.3967   -0.0603
-persistent_offset         0.9603    0.9556   -0.0047    0.7134    0.6335   -0.0799
-sensor_freeze             0.4398    0.7367   +0.2969    0.0347    0.3531   +0.3184 <<<
-spike                     0.9487    0.9398   -0.0089    0.5039    0.3339   -0.1700
+Anomaly Type             URD ROC  TranAD ROC    Change    URD PR   TranAD PR    Change
+----------------------------------------------------------------------------------
+drop                      0.9295      0.9137   -0.0158    0.2151      0.2311   +0.0161
+noise_burst               0.8108      0.7912   -0.0196    0.3606      0.2946   -0.0660
+persistent_offset         0.9481      0.9368   -0.0113    0.5748      0.5302   -0.0446
+sensor_freeze             0.8230      0.4621   -0.3609    0.4467      0.0362   -0.4105 <<<
+spike                     0.9280      0.9143   -0.0136    0.2798      0.2242   -0.0556
 
-OVERALL                   0.7477    0.8395   +0.0918    0.3739    0.4295   +0.0557
+OVERALL                   0.8636      0.7379   -0.1257    0.4250      0.2475   -0.1775
 
-  CSVs saved to outputs/results/
-  Stage C Complete!
-PS C:\Users\Stepan\Desktop\C-MAPSS_project\C-MAPSS_Drift-Anomaly_Distinction> & C:\Users\Stepan\AppData\Local\Programs\Python\Python313\python.exe c:/Users/Stepan/Desktop/C-MAPSS_project/C-MAPSS_Drift-Anomaly_Distinction/experiments/02b_method_comparison.py
-====================================================================================================
-PAPER TABLE: Scoring Method Comparison  |  Model: Gaussian GRU
-====================================================================================================
+Results saved to outputs/results/
 
-[1] Fitting scorers...
+Stage C Complete!
+
+====================================================================================================================
+PAPER TABLE: Scoring Method Comparison  |  Model: Gaussian GRU + TranAD baseline
+====================================================================================================================
+
+[1] Fitting scorers on healthy validation windows...
 
 [2] Generating synthetic anomalies...
    1080 trajectories
 
-[3] Evaluating all 6 methods...
+[3] Evaluating all methods...
    NLL... ROC=0.7477
    D+Conformity... ROC=0.7662
    D+Variance... ROC=0.7849
    D+FDE... ROC=0.8240
-   D+FDE+Run (URD)... ROC=0.8395
+   URD (baseline)... ROC=0.8636
+   TranAD... ROC=0.7379
    IForest... ROC=0.6866
 
-====================================================================================================
+================================================================================================================================================================
 TABLE 1: ROC-AUC
-====================================================================================================
-Type                             NLL    D+Conformity      D+Variance           D+FDE D+FDE+Run (URD)         IForest
---------------------------------------------------------------------------------------------------------------------
-drop                          0.9396          0.9393          0.9407          0.9378          0.9356          0.8028
-noise_burst                   0.8173          0.8124          0.8114          0.8152          0.8126          0.7465
-persistent_offset             0.9603          0.9579          0.9565          0.9556          0.9556          0.8472
-sensor_freeze                 0.4398          0.5034          0.5635          0.6851          0.7367          0.4484
-spike                         0.9487          0.9467          0.9466          0.9408          0.9398          0.8230
---------------------------------------------------------------------------------------------------------------------
-OVERALL                       0.7477          0.7662          0.7849          0.8240          0.8395          0.6866
+================================================================================================================================================================
+Type                                 NLL    D+Conformity      D+Variance           D+FDE  URD (baseline)          TranAD         IForest
+----------------------------------------------------------------------------------------------------------------------------------------
+drop                              0.9396          0.9393          0.9407          0.9378          0.9295          0.9137          0.8028
+noise_burst                       0.8173          0.8124          0.8114          0.8152          0.8108          0.7912          0.7465
+persistent_offset                 0.9603          0.9579          0.9565          0.9556          0.9481          0.9368          0.8472
+sensor_freeze                     0.4398          0.5034          0.5635          0.6851          0.8230          0.4621          0.4484
+spike                             0.9487          0.9467          0.9466          0.9408          0.9280          0.9143          0.8230
+----------------------------------------------------------------------------------------------------------------------------------------
+OVERALL                           0.7477          0.7662          0.7849          0.8240          0.8636          0.7379          0.6866
 
-====================================================================================================
+================================================================================================================================================================
 TABLE 4: Sensor Freeze Progression
-====================================================================================================
-  NLL                       ROC=0.4398 PR=0.0347 ΔROC=+0.0000  [residuals]
-  D+Conformity              ROC=0.5034 PR=0.0435 ΔROC=+0.0636  [residuals (chi²)]
-  D+Variance                ROC=0.5635 PR=0.1252 ΔROC=+0.1237  [RAW (variance)]
-  D+FDE                     ROC=0.6851 PR=0.2903 ΔROC=+0.2453  [RAW (Δx²)]
-  D+FDE+Run (URD)           ROC=0.7367 PR=0.3531 ΔROC=+0.2969  [RAW (Δx²+run)]
-  IForest                   ROC=0.4484 PR=0.0353 ΔROC=+0.0086  [residuals (tree)]
+================================================================================================================================================================
+  NLL                    ROC=0.4398 PR=0.0347 ΔROC=+0.0000  [residuals (prob)]
+  D+Conformity           ROC=0.5034 PR=0.0435 ΔROC=+0.0636  [residuals (chi²)]
+  D+Variance             ROC=0.5635 PR=0.1252 ΔROC=+0.1237  [RAW (variance)]
+  D+FDE                  ROC=0.6851 PR=0.2903 ΔROC=+0.2453  [RAW (Δx²)]
+  URD (baseline)         ROC=0.8230 PR=0.4467 ΔROC=+0.3832  [calibrated Mahalanobis D + tuned S + weighted fusion]
+  TranAD                 ROC=0.4621 PR=0.0362 ΔROC=+0.0223  [two-phase transformer next-step error]
+  IForest                ROC=0.4484 PR=0.0353 ΔROC=+0.0086  [residuals (tree)]
 
   CSVs saved to outputs/results/
   Method Comparison Complete!
-PS C:\Users\Stepan\Desktop\C-MAPSS_project\C-MAPSS_Drift-Anomaly_Distinction> & C:\Users\Stepan\AppData\Local\Programs\Python\Python313\python.exe c:/Users/Stepan/Desktop/C-MAPSS_project/C-MAPSS_Drift-Anomaly_Distinction/experiments/03_drift_classification.py
 ======================================================================
 Stage D: Drift-vs-Anomaly (URD — 16 features)  |  Model: Gaussian GRU
 ======================================================================
@@ -412,30 +478,18 @@ Extracting features (URD=16 feat)...
   Original: Train=1436 Test=1436 dim=12
 
 ======================================================================
-logistic_regression_URD_16feat                          Acc=0.903  D→A=0.096  A→D=0.098
+logistic_regression_URD_16feat                          Acc=0.913  D→A=0.092  A→D=0.082
 logistic_regression_Original_12feat                     Acc=0.813  D→A=0.219  A→D=0.155
 logistic_regression_NoProbabilistic_9feat               Acc=0.809  D→A=0.179  A→D=0.203
-random_forest_URD_16feat                                Acc=0.946  D→A=0.040  A→D=0.067
+random_forest_URD_16feat                                Acc=0.955  D→A=0.029  A→D=0.061
 random_forest_Original_12feat                           Acc=0.921  D→A=0.054  A→D=0.103
 random_forest_NoProbabilistic_9feat                     Acc=0.907  D→A=0.083  A→D=0.103
-C:\Users\Stepan\AppData\Local\Programs\Python\Python313\Lib\site-packages\xgboost\training.py:183: UserWarning: [13:53:30] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:738: 
-Parameters: { "use_label_encoder" } are not used.
-
-  bst.update(dtrain, iteration=i, fobj=obj)
-xgboost_URD_16feat                                      Acc=0.957  D→A=0.037  A→D=0.049
-C:\Users\Stepan\AppData\Local\Programs\Python\Python313\Lib\site-packages\xgboost\training.py:183: UserWarning: [13:53:30] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:738: 
-Parameters: { "use_label_encoder" } are not used.
-
-  bst.update(dtrain, iteration=i, fobj=obj)
+xgboost_URD_16feat                                      Acc=0.951  D→A=0.044  A→D=0.053
 xgboost_Original_12feat                                 Acc=0.912  D→A=0.079  A→D=0.096
-C:\Users\Stepan\AppData\Local\Programs\Python\Python313\Lib\site-packages\xgboost\training.py:183: UserWarning: [13:53:30] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:738: 
-Parameters: { "use_label_encoder" } are not used.
-
-  bst.update(dtrain, iteration=i, fobj=obj)
 xgboost_NoProbabilistic_9feat                           Acc=0.909  D→A=0.086  A→D=0.095
 
-  Stage D Complete! CSVs saved to outputs/results/
-PS C:\Users\Stepan\Desktop\C-MAPSS_project\C-MAPSS_Drift-Anomaly_Distinction> & C:\Users\Stepan\AppData\Local\Programs\Python\Python313\python.exe c:/Users/Stepan/Desktop/C-MAPSS_project/C-MAPSS_Drift-Anomaly_Distinction/experiments/04_urd_fingerprinting.py
+Stage D Complete! CSVs saved to outputs/results/
+
 ======================================================================
 Stage E: URD Anomaly Fingerprinting  |  Model: Gaussian GRU
 ======================================================================
@@ -451,45 +505,45 @@ Stage E: URD Anomaly Fingerprinting  |  Model: Gaussian GRU
 EXPERIMENT 1: 5-Class Actionable Category Classification
 ======================================================================
 
-   5-Class Accuracy: 0.898
+   5-Class Accuracy: 0.900
 
    Category                   Prec   Recall       F1      N
    ----------------------------------------------------
-   drift                     0.908    0.983    0.944    240
-   noise_anomaly             0.830    0.733    0.779     60
-   persistent_shift          0.864    0.850    0.857     60
-   point_anomaly             0.870    0.783    0.825     60
-   sensor_malfunction        0.981    0.883    0.930     60
+   drift                     0.911    0.979    0.944    240
+   noise_anomaly             0.833    0.750    0.789     60
+   persistent_shift          0.850    0.850    0.850     60
+   point_anomaly             0.887    0.783    0.832     60
+   sensor_malfunction        0.982    0.900    0.939     60
 
    URD Signature Profiles (5-class):
-   drift                 : D=    8.54  U=   1.033  S=   -0.05
-   noise_anomaly         : D=   40.63  U=   0.988  S=   -0.05
-   persistent_shift      : D=   23.49  U=   0.995  S=   -0.05
-   point_anomaly         : D=   19.79  U=   0.988  S=   -0.10
-   sensor_malfunction    : D=    0.74  U=   0.989  S=    7.68
+   drift                 : D=    8.63  U=   1.033  S=   -0.13
+   noise_anomaly         : D=   41.51  U=   0.988  S=   -0.05
+   persistent_shift      : D=   23.97  U=   0.995  S=   -0.11
+   point_anomaly         : D=   20.06  U=   0.988  S=    0.14
+   sensor_malfunction    : D=    0.78  U=   0.989  S=    6.98
 
-   Top features: [('duration', np.float64(0.1563)), ('max_single_sensor', np.float64(0.1073)), ('mean_score', np.float64(0.0943)), ('deviation_at_peak', np.float64(0.0854)), ('score_slope', np.float64(0.0692)), ('max_score', np.float64(0.0641))]
+   Top features: [('duration', np.float64(0.1676)), ('max_single_sensor', np.float64(0.104)), ('mean_score', np.float64(0.0925)), ('deviation_at_peak', np.float64(0.0793)), ('score_slope', np.float64(0.0697)), ('du_ratio', np.float64(0.0668))]
 
 ======================================================================
 EXPERIMENT 2: 9-Class Per-Type Classification
 ======================================================================
 
-   9-Class Accuracy: 0.637
+   9-Class Accuracy: 0.631
 
 ======================================================================
 EXPERIMENT 3: Spike vs Drop Distinction
 ======================================================================
 
-   With signed_deviation:    0.967
-   Without signed_deviation: 0.583
+   With signed_deviation:    0.950
+   Without signed_deviation: 0.567
    Improvement:              +0.383
 
 ======================================================================
 EXPERIMENT 4: Feature Ablation (5-Class)
 ======================================================================
 
-   16 URD features (5-class): 0.898
+   16 URD features (5-class): 0.900
     9 standard features:      0.875
-   Improvement from URD:      +0.023
+   Improvement from URD:      +0.025
 
   Stage E Complete! CSVs saved to outputs/results/

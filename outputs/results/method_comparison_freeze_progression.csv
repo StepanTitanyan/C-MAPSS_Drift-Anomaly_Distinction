@@ -1,7 +1,8 @@
-method,signal_space,freeze_roc,freeze_pr,delta_roc_vs_nll
-NLL,residuals,0.4398,0.0347,+0.0000
-D+Conformity,residuals (chi²),0.5034,0.0435,+0.0636
-D+Variance,RAW (variance),0.5635,0.1252,+0.1237
-D+FDE,RAW (Δx²),0.6851,0.2903,+0.2453
-D+FDE+Run (URD),RAW (Δx²+run),0.7367,0.3531,+0.2969
-IForest,residuals (tree),0.4484,0.0353,+0.0086
+method,freeze_roc,freeze_pr,delta_roc_vs_nll,description
+NLL,0.43980180297499805,0.03466875669541356,0.0,[residuals (prob)]
+D+Conformity,0.5033690308017156,0.04351106325379234,0.06356722782671753,[residuals (chi²)]
+D+Variance,0.5634636141886847,0.12515334361304375,0.12366181121368669,[RAW (variance)]
+D+FDE,0.6851343016706686,0.290277496123957,0.24533249869567053,[RAW (Δx²)]
+URD (baseline),0.8229521693668327,0.4467276517426472,0.38315036639183464,[calibrated Mahalanobis D + tuned S + weighted fusion]
+TranAD,0.4620668894698491,0.03624075369032102,0.02226508649485104,[two-phase transformer next-step error]
+IForest,0.44840121314439974,0.03526024648510074,0.008599410169401689,[residuals (tree)]

@@ -1,10 +1,10 @@
 classifier,feature_set,n_features,accuracy,drift_as_anomaly_rate,anomaly_as_drift_rate
 logistic,regression_NoProbabilistic_9feat,9,0.8092,0.1792,0.2025
 logistic,regression_Original_12feat,12,0.8127,0.2194,0.1550
-logistic,regression_URD_16feat,16,0.9032,0.0958,0.0978
+logistic,regression_URD_16feat,16,0.9130,0.0917,0.0824
 random,forest_NoProbabilistic_9feat,9,0.9067,0.0833,0.1034
 random,forest_Original_12feat,12,0.9213,0.0542,0.1034
-random,forest_URD_16feat,16,0.9464,0.0403,0.0670
+random,forest_URD_16feat,16,0.9547,0.0292,0.0615
 xgboost,NoProbabilistic_9feat,9,0.9095,0.0861,0.0950
 xgboost,Original_12feat,12,0.9123,0.0792,0.0964
-xgboost,URD_16feat,16,0.9568,0.0375,0.0489
+xgboost,URD_16feat,16,0.9513,0.0444,0.0531

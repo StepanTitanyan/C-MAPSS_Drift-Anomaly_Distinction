@@ -8,14 +8,14 @@
 1. [What Problem Are We Solving?](#1-what-problem-are-we-solving)
 2. [The Dataset: NASA C-MAPSS](#2-the-dataset-nasa-c-mapss)
 3. [Data Preprocessing Pipeline](#3-data-preprocessing-pipeline)
-4. [The Probabilistic Model: Gaussian LSTM](#4-the-probabilistic-model-gaussian-lstm)
+4. [The Probabilistic Model: Gaussian GRU](#4-the-probabilistic-model-gaussian-gru)
 5. [Training with Gaussian NLL Loss](#5-training-with-gaussian-nll-loss)
 6. [From Predictions to Anomaly Scores](#6-from-predictions-to-anomaly-scores)
 7. [The Problem with Standard Scoring](#7-the-problem-with-standard-scoring)
 8. [URD: Uncertainty-Residual Decomposition](#8-urd-uncertainty-residual-decomposition)
 9. [Channel 1: Deviation — Too Far From Expected](#9-channel-1-deviation)
 10. [Channel 2: Uncertainty — How Confident Is the Model?](#10-channel-2-uncertainty)
-11. [Channel 3: Conformity — Too Close to Expected](#11-channel-3-conformity)
+11. [Channel 3: Stationarity — Variance Collapse on Raw Signals](#11-channel-3-stationarity)
 12. [How the Three Channels Combine](#12-how-the-three-channels-combine)
 13. [Stage 2: Drift vs Anomaly Classification](#13-stage-2-drift-vs-anomaly-classification)
 14. [Stage 3: Anomaly Fingerprinting](#14-stage-3-anomaly-fingerprinting)
@@ -196,7 +196,7 @@ what the next cycle's sensor readings will be.
 
 ---
 
-## 4. The Probabilistic Model: Gaussian LSTM
+## 4. The Probabilistic Model: Gaussian GRU
 
 ### What a Standard LSTM Does
 
@@ -221,7 +221,7 @@ A standard LSTM trained with MSE loss outputs only **μ** (the predicted mean):
 μ = Linear(h_final)      # h_final is the last hidden state
 ```
 
-### What Our Gaussian LSTM Does Differently
+### What Our Gaussian GRU Does Differently
 
 Our model has **two output heads** instead of one:
 
@@ -470,7 +470,7 @@ channels**, each measuring a different kind of statistical violation:
 |---|---|---|
 | **Deviation (D)** | "Is this too far from expected?" | Spikes, drops, offsets |
 | **Uncertainty (U)** | "Is the model unusually uncertain?" | Drift, degradation |
-| **Conformity (C)** | "Is this too close to expected?" | Sensor freeze, flatline |
+| **Stationarity (S)** | "Has variability collapsed?" | Sensor freeze, flatline |
 
 Together, these three channels provide a complete picture. Standard detectors only
 have Channel 1. Channel 2 is only possible with a probabilistic model. Channel 3
@@ -593,7 +593,7 @@ data. This is the model's "baseline" uncertainty for each sensor.
 
 ### Why This Channel Exists
 
-When the Gaussian LSTM sees input patterns that are different from what it learned
+When the Gaussian GRU sees input patterns that are different from what it learned
 during training (which was healthy-only data), its internal hidden states reflect
 this unfamiliarity. The σ head, trained to output calibrated uncertainty, responds
 by producing larger σ values.
@@ -630,169 +630,99 @@ drift-detection capability.
 
 ---
 
-## 11. Channel 3: Conformity (C)
+## 11. Channel 3: Stationarity (S)
 
-### The Novel Insight
+### The Core Insight
 
-Channels 1 and 2 are natural extensions of probabilistic modeling. Channel 3 is
-our novel contribution.
+Standard residual-based detectors look for values that are **too far** from the model
+prediction. Sensor freeze is different. Once a sensor becomes stuck, the model often
+predicts the stuck value well, so the residual can become *small* instead of large.
 
-The key observation: under normal conditions, normalized residuals have variance 1.
-If we observe a window of residuals with variance **much lower than 1**, something
-is suppressing the normal noise. The most common cause: a sensor is frozen.
+That means freeze is better detected in the **raw dynamics** than in residual magnitude.
+The practical signature is not “big error”, but “the signal stopped moving.”
 
-### The Math: Chi-Squared Test
+### The Tuned Stationarity Score
 
-Over a sliding window of w steps (we use w = 10), we compute the total sum of
-squared normalized residuals:
-
-```
-Q_t = Σ_{i=t-w+1}^{t}  Σ_{j=1}^{d}  r_{i,j}²
-```
-
-This sums w × d squared standard normal values. Under normal conditions, this
-follows a **chi-squared distribution** with w × d degrees of freedom:
+For each sensor we compute first-difference energy over a short window of length `w=5`:
 
 ```
-Q_t  ~  χ²(w × d)
+FDE_t(j) = (1/w) Σ_{i=t-w+1}^{t} (x_{i,j} - x_{i-1,j})^2
 ```
 
-A chi-squared distribution with k degrees of freedom has:
-- Mean = k
-- Variance = 2k
-- Standard deviation = √(2k)
+This is then compared to a healthy reference level `FDE_ref,j` estimated from validation
+trajectories. If the energy collapses far below its healthy level, the stationarity score
+rises.
 
-For w = 10 and d = 7:
-- E[Q] = 70
-- std(Q) = √140 ≈ 11.83
-
-### The Conformity Score
-
-We measure how far BELOW expected the sum is:
+The deployed baseline also adds a run-length bonus:
 
 ```
-C_t = max(0,  (E[Q] - Q_t) / std(Q))
-    = max(0,  (w×d - Q_t) / √(2×w×d))
+S_t = FDE_score(t) + 3 * max(0, run_t - 1)
 ```
 
-The `max(0, ...)` means we only care about the LOWER tail — when Q is suspiciously
-small. If Q is larger than expected, that's already caught by Channel 1.
+where `run_t` is the longest current sequence of nearly unchanged values across sensors.
+The tuned parameters mean the bonus starts after **two nearly identical consecutive steps**
+and then grows quickly for sustained flatlines.
 
-### Worked Example: Normal vs Frozen Sensor
+### Why This Works Better Than Residual-Only Freeze Detection
 
-**Normal window (10 steps, 7 sensors):**
+A frozen sensor often has:
+- low residual magnitude, because the model predicts the repeated value
+- normal-looking uncertainty, because the input sequence itself looks stable
+- but **very low first-difference energy** and **long run lengths**
 
-Each r² ≈ 1 on average, so:
-```
-Q = Σ(all r²) ≈ 70
+This is exactly why the stationarity channel is computed on **raw sensor values**, not on
+residuals alone.
 
-C = max(0, (70 - 70) / 11.83) = max(0, 0) = 0.0
-```
-Nothing suspicious. C = 0.
+### Latest Empirical Evidence
 
-**Frozen sensor window (sensor s_3 stuck at 1590.0):**
+In the current baseline comparison:
 
-The model predicts approximately 1590 for s_3 (since it recently saw 1590 repeatedly).
-So r_{s_3} ≈ 0 for all 10 steps. That's 10 missing contributions of ~1 each.
+- NLL freeze ROC-AUC = **0.4398**
+- URD baseline freeze ROC-AUC = **0.8230**
+- NLL freeze PR-AUC = **0.0347**
+- URD baseline freeze PR-AUC = **0.4467**
 
-The other 6 sensors are normal: their r² ≈ 1 each, contributing 6 × 10 = 60.
-```
-Q ≈ 0 + 60 = 60      (instead of expected 70)
-
-C = max(0, (70 - 60) / 11.83) = max(0, 0.845) = 0.845
-```
-
-The conformity score is 0.85 — noticeably above zero.
-
-**Three frozen sensors:**
-
-If s_3, s_4, and s_11 all freeze:
-```
-Q ≈ 0 + 0 + 0 + (4 sensors × 10 steps × ~1 each) = 40
-
-C = max(0, (70 - 40) / 11.83) = max(0, 2.54) = 2.54
-```
-
-Very high conformity score. The detector fires.
-
-### Why a Window Is Necessary
-
-A single frozen step has r² ≈ 0 for one sensor. But a single near-zero residual
-happens all the time by chance — sometimes your prediction is just accurate. The
-chi-squared test needs multiple steps to distinguish "lucky prediction" from
-"systematically suppressed variance."
-
-With w = 10, the probability of r² being near zero for ALL 10 steps of a normally-
-functioning sensor is astronomically small (roughly (0.1)^10 ≈ 10^{-10} if we
-define "near zero" as |r| < 0.3). The window provides statistical power.
-
-### Why Channel 3 Requires the Probabilistic Model
-
-Without σ, the normalized residual is just the raw residual:
-```
-r_deterministic = x - μ      (no division by σ)
-```
-
-For a frozen sensor reading 1590.0 with μ = 1589.5:
-```
-r_deterministic = 1590.0 - 1589.5 = 0.5
-```
-
-Is 0.5 "too small"? For sensor s_3 (std ≈ 6), yes. But for sensor s_20 (std ≈ 0.18),
-an error of 0.5 would actually be large. Without σ, you can't tell the difference.
-
-The normalized residual fixes this:
-```
-r_s3 = 0.5 / 6.0 = 0.083    ← suspiciously small
-r_s20 = 0.5 / 0.18 = 2.78   ← actually quite large
-```
-
-**The conformity test requires calibrated σ to work.** This is the strongest argument
-for why the probabilistic approach enables fundamentally new detection capabilities.
-
----
+So the stationarity channel is not a small tweak. It is the main reason the framework can
+reliably detect frozen or flatlined sensors. The repo now also includes a practical TranAD-style
+transformer baseline trained on the same FD001 split and healthy-only windows so this claim can be
+checked against a strong external TSAD family inside the same experiment pipeline.
 
 ## 12. How the Three Channels Combine
 
 ### The Combined Score
 
-For anomaly detection (deciding whether to flag a time step), we use:
+For anomaly detection, the current baseline uses a **weighted fusion** of the normalised
+deviation and stationarity channels:
 
 ```
-Combined_t = max(D_t, C_t)
+Combined_t = 0.35 * D_t + 0.65 * S_t
 ```
 
-This is a **bidirectional detector**:
-- If D_t is high → flagged (observations are too far from expected)
-- If C_t is high → flagged (observations are too close to expected)
-- If both are low → normal
-
-We use `max` (not `sum`) because D and C measure opposite phenomena. Summing them
-could cause partial cancellation in edge cases. The `max` ensures each channel
-independently triggers when its specific violation occurs.
+This weighting came from the upgrade search on synthetic validation data. It preserves the
+broad anomaly sensitivity of deviation while giving extra emphasis to the stationarity
+channel, which is the key for sensor freeze.
 
 ### The Uncertainty Channel's Role
 
-U is NOT part of the combined detection score. It doesn't trigger alarms on its own.
-Instead, it serves as a **characterization signal** used downstream for classification:
+U is still **not** part of the deployed detection score. It is retained as a characterization
+signal used downstream for drift-vs-anomaly classification and fingerprinting:
 
-- High D + Low U → surprise anomaly (the model had no warning)
-- High D + High U → expected deviation in unfamiliar regime (drift)
-- Low D + High U → model is uncertain but nothing deviated yet (early drift warning)
-- Low D + Low U + High C → sensor malfunction (freeze)
+- High D + low U → sharp surprise anomaly
+- Moderate D + high U → drift / regime shift
+- Low D + high S → sensor malfunction / freeze
 
 ### The Anomaly Signature Table
 
 Each anomaly type produces a distinct pattern across the three channels:
 
 ```
-Type                  D (Deviation)    U (Uncertainty)    C (Conformity)
-─────────────────────────────────────────────────────────────────────────
+Type                  D (Deviation)    U (Uncertainty)    S (Stationarity)
+────────────────────────────────────────────────────────────────────────────
 Spike / Drop          VERY HIGH        LOW (~1.0)         LOW (~0)
 Persistent Offset     HIGH             LOW-MODERATE       LOW (~0)
 Noise Burst           HIGH             MODERATE           LOW (~0)
-Sensor Freeze         LOW (~0)         LOW (~1.0)         HIGH
-Gradual Drift         RISING           HIGH (>1.2)        LOW (~0)
+Sensor Freeze         LOW-MODERATE     LOW (~1.0)         VERY HIGH
+Gradual Drift         MODERATE         HIGH (>1.2)        LOW (~0)
 Accelerating Drift    RISING FAST      HIGH (>1.3)        LOW (~0)
 ```
 
@@ -814,7 +744,7 @@ A standard anomaly detector treats them identically. Our second stage distinguis
 
 ### Feature Extraction
 
-For each flagged event, we extract **15 features** from the score trajectory and
+For each flagged event, we extract **16 features** from the score trajectory and
 URD channels. These features capture the temporal and spatial structure of the event.
 
 **Standard features (1-9):** computed from the anomaly score trajectory
@@ -831,15 +761,15 @@ URD channels. These features capture the temporal and spatial structure of the e
 | 8 | num_sensors_flagged | Count of simultaneously abnormal sensors |
 | 9 | max_single_sensor | Largest single-sensor deviation |
 
-**URD features (10-15):** only available from the probabilistic model
+**URD features (10-16):** only available from the probabilistic model
 
 | # | Feature | What It Captures |
 |---|---|---|
 | 10 | deviation_at_peak | D channel value at the event center |
 | 11 | uncertainty_at_peak | U channel value — was the model surprised? |
-| 12 | conformity_at_peak | C channel value — frozen sensor? |
+| 12 | stationarity_at_peak | S channel value — frozen sensor? |
 | 13 | uncertainty_slope | Is U rising (drift) or flat (anomaly)? |
-| 14 | conformity_max | Peak conformity in the analysis window |
+| 14 | stationarity_max | Peak stationarity in the analysis window |
 | 15 | D/U ratio | High ratio = surprise (anomaly), low = expected (drift) |
 
 ### The D/U Ratio: Why It Works
@@ -866,10 +796,10 @@ deviation. Surprise = anomaly. Preparation = drift.
 ### The Classifier
 
 We train a lightweight classifier (Logistic Regression, Random Forest, or XGBoost) on
-these 15 features. The training data comes from synthetic anomalies and drifts
+these 16 features. The training data comes from synthetic anomalies and drifts
 injected into validation engine trajectories.
 
-Input: 15-dimensional feature vector
+Input: 16-dimensional feature vector
 Output: "anomaly" or "drift"
 
 **Why a lightweight classifier?** If even a simple model can distinguish the two
@@ -880,13 +810,11 @@ decomposition is the actual contribution, not the classifier complexity.
 
 | Configuration | Accuracy | Drift Misclassified as Anomaly |
 |---|---|---|
-| 9 features (no probabilistic info) | 88.5% | 10.8% |
-| 12 features (original probabilistic) | 88.3% | 10.7% |
-| **15 features (URD)** | **90.2%** | **6.1%** |
+| 9 features (no probabilistic info) | 90.9% | 8.6% |
+| 12 features (original probabilistic) | 92.1% | 5.4% |
+| **16 features (URD)** | **95.3%** | **4.0%** |
 
-The URD features reduce the drift-as-anomaly rate from 10.8% to 6.1% — a 44%
-reduction. This means 94% of drift events are correctly identified as drift
-rather than triggering false fault alarms.
+The URD features reduce the drift-as-anomaly rate sharply relative to weaker feature sets. In the latest run, logistic regression reaches 90.3% accuracy with URD features, while the best overall classifier (XGBoost) reaches 95.3% accuracy with only 4.0% of drift events misclassified as anomalies.
 
 ---
 
@@ -895,7 +823,7 @@ rather than triggering false fault alarms.
 ### The Idea
 
 The previous stage distinguishes drift from anomaly. But we can go further: the
-(D, U, C) signature is distinct enough to identify the **specific type** of anomaly.
+(D, U, S) signature is distinct enough to identify the **specific type** of anomaly or drift pattern.
 
 This is like a doctor who doesn't just say "you're sick" but says "you have the flu"
 vs "you have a broken bone" vs "you have food poisoning" — based on the pattern of
@@ -904,7 +832,7 @@ symptoms.
 ### The Anomaly Types as "Diseases" with Different "Symptom Profiles"
 
 ```
-"Disease" (anomaly type)     "Symptoms" (D, U, C)
+"Disease" (anomaly type)     "Symptoms" (D, U, S)
 ───────────────────────────────────────────────────
 Spike                        D=HIGH,  U=LOW,   C=LOW
 Drop                         D=HIGH,  U=LOW,   C=LOW
@@ -919,7 +847,7 @@ Multi-sensor drift           D=MED,   U=HIGH,  C=LOW
 
 ### The Classifier
 
-We train a multi-class Random Forest on the same 15 URD features, but now with
+We train a multi-class Random Forest on the same 16 URD features, but now with
 9 classes instead of 2. The training data labels each event with its specific type
 (spike, drop, persistent_offset, etc.).
 
@@ -951,7 +879,7 @@ Raw Sensor Data
     │  • Create sliding windows of 30 cycles
     │
     ▼
-[Gaussian LSTM]  ← trained on normal data only (first 50% of engine life)
+[Gaussian GRU]  ← trained on normal data only (first 50% of engine life)
     │
     │  Outputs: μ (predicted mean) and σ (predicted uncertainty)
     │           for each sensor at each time step
@@ -965,30 +893,30 @@ Raw Sensor Data
     ├── Channel U: Uncertainty = σ_current / σ_reference
     │   "How confident is the model?"
     │
-    ├── Channel C: Conformity = lower-tail chi-squared test
-    │   "Are predictions suspiciously accurate?"
+    ├── Channel S: Stationarity = tuned FDE + run-length
+    │   "Has variability collapsed?"
     │
     ▼
 [Combined Detection]
-    │  Combined Score = max(D, C)
+    │  Combined Score = 0.35 D + 0.65 S
     │  Flag if Combined > threshold
     │
     │  At this point we know: "something unusual is happening"
     │
     ▼
 [Feature Extraction]  ← for each flagged event
-    │  Extract 15 features from (D, U, C) trajectories
+    │  Extract 16 features from (D, U, S) trajectories
     │  and score patterns around the event
     │
     ▼
 [Stage 2: Drift vs Anomaly Classifier]
-    │  Random Forest on 15 features
+    │  Random Forest on 16 features
     │  Output: "anomaly" or "drift"
     │
     │  If anomaly:
     │      ▼
     │  [Stage 3: Fingerprint Classifier]
-    │      Random Forest on 15 features
+    │      Random Forest on 16 features
     │      Output: specific type (spike, freeze, offset, etc.)
     │
     ▼
@@ -1003,11 +931,11 @@ Final Output:
 
 | Stage | What It Needs | What It Produces |
 |---|---|---|
-| Gaussian LSTM | Normal training data | μ and σ predictions |
-| URD Decomposition | μ, σ, and actual observations | D, U, C scores |
-| Detection | D, C, threshold | Binary flag: normal/abnormal |
-| Drift Classifier | 15 URD features per event | anomaly vs drift |
-| Fingerprinting | 15 URD features per event | specific anomaly type |
+| Gaussian GRU | Normal training data | μ and σ predictions |
+| URD Decomposition | μ, σ, and actual observations | D, U, S scores |
+| Detection | 0.35 D + 0.65 S, threshold | Binary flag: normal/abnormal |
+| Drift Classifier | 16 URD features per event | anomaly vs drift |
+| Fingerprinting | 16 URD features per event | specific anomaly type |
 
 ---
 
@@ -1049,17 +977,17 @@ We run this TWICE: once with NLL-only scoring, once with URD combined scoring.
 The comparison shows the improvement from bidirectional detection.
 
 **Stage D (drift classification):** For events flagged by the detector, we extract
-15 features and classify them as anomaly or drift. We test three ablation
+16 features and classify them as anomaly or drift. We test three ablation
 configurations:
 - 9 features (no probabilistic information)
 - 12 features (original probabilistic features)
-- 15 features (URD features)
+- 16 features (URD features)
 
 Each configuration is tested with 3 classifiers (Logistic Regression, Random Forest,
 XGBoost), producing a 3×3 ablation table.
 
 **Stage E (fingerprinting):** We train a multi-class classifier on all anomaly and
-drift types simultaneously, using the 15 URD features. We evaluate with a multi-class
+drift types simultaneously, using the 16 URD features. We evaluate with a multi-class
 confusion matrix and per-type precision/recall.
 
 ### Key Results
@@ -1095,7 +1023,7 @@ the model was "surprised" (anomaly) or "prepared" (drift). This reduces
 drift-as-anomaly misclassification by 44%.
 
 ### Contribution 3: Anomaly Fingerprinting
-The (D, U, C) signature profile is distinct for each anomaly type, enabling automatic
+The (D, U, S) signature profile is distinct for each anomaly type, enabling automatic
 identification of WHAT went wrong — not just that something did. This is a capability
 no existing time-series anomaly detection method provides.
 

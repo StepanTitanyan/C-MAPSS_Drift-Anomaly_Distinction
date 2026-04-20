@@ -2,51 +2,51 @@
   "logistic_regression_URD_16feat": {
     "classification_report": {
       "anomaly": {
-        "precision": 0.9034965034965035,
-        "recall": 0.9022346368715084,
-        "f1-score": 0.9028651292802237,
+        "precision": 0.9087136929460581,
+        "recall": 0.9175977653631285,
+        "f1-score": 0.9131341209173037,
         "support": 716.0
       },
       "drift": {
-        "precision": 0.9029126213592233,
-        "recall": 0.9041666666666667,
-        "f1-score": 0.9035392088827203,
+        "precision": 0.9172510518934082,
+        "recall": 0.9083333333333333,
+        "f1-score": 0.9127704117236567,
         "support": 720.0
       },
-      "accuracy": 0.9032033426183844,
+      "accuracy": 0.9129526462395543,
       "macro avg": {
-        "precision": 0.9032045624278634,
-        "recall": 0.9032006517690876,
-        "f1-score": 0.903202169081472,
+        "precision": 0.9129823724197331,
+        "recall": 0.9129655493482309,
+        "f1-score": 0.9129522663204802,
         "support": 1436.0
       },
       "weighted avg": {
-        "precision": 0.9032037492215441,
-        "recall": 0.9032033426183844,
-        "f1-score": 0.9032031079110019,
+        "precision": 0.9129942628918046,
+        "recall": 0.9129526462395543,
+        "f1-score": 0.9129517597617147,
         "support": 1436.0
       }
     },
-    "accuracy": 0.9032033426183844,
-    "drift_as_anomaly_rate": 0.09583333333333334,
-    "anomaly_as_drift_rate": 0.09776536312849161,
+    "accuracy": 0.9129526462395543,
+    "drift_as_anomaly_rate": 0.09166666666666666,
+    "anomaly_as_drift_rate": 0.0824022346368715,
     "feature_importance": {
-      "max_score": 3.005016399523718,
-      "mean_score": 0.5903325980941669,
-      "score_slope": 0.3562939868804641,
-      "score_curvature": 1.3997843646506591,
-      "score_volatility": 1.4302176882368218,
-      "duration": 3.8511705049591822,
-      "sensor_concentration": 0.7313179837384927,
-      "num_sensors_flagged": 0.25660283696499014,
-      "max_single_sensor": 1.3215734698208124,
-      "deviation_at_peak": 0.2511041646280557,
-      "uncertainty_at_peak": 1.4972937322786832,
-      "stationarity_at_peak": 0.42996165713691875,
-      "uncertainty_slope": 0.1630053446888586,
-      "stationarity_max": 1.1690565314904589,
-      "du_ratio": 0.01068597742637268,
-      "signed_deviation_mean": 1.0263107328411656
+      "max_score": 2.8529473499553863,
+      "mean_score": 0.5971065159001175,
+      "score_slope": 0.3827807014402018,
+      "score_curvature": 1.3139063142088383,
+      "score_volatility": 1.4301506499016021,
+      "duration": 3.8687292159941347,
+      "sensor_concentration": 0.7274969543444716,
+      "num_sensors_flagged": 0.2028035216279192,
+      "max_single_sensor": 1.45031759047432,
+      "deviation_at_peak": 0.3066155124583358,
+      "uncertainty_at_peak": 1.5612454015025305,
+      "stationarity_at_peak": 0.7385305928342676,
+      "uncertainty_slope": 0.16136222613132833,
+      "stationarity_max": 1.2277611090435996,
+      "du_ratio": 0.04074737564760698,
+      "signed_deviation_mean": 1.0307117312992526
     }
   },
   "logistic_regression_Original_12feat": {
@@ -141,51 +141,51 @@
   "random_forest_URD_16feat": {
     "classification_report": {
       "anomaly": {
-        "precision": 0.9583931133428981,
-        "recall": 0.9329608938547486,
-        "f1-score": 0.9455060155697098,
+        "precision": 0.9696969696969697,
+        "recall": 0.9385474860335196,
+        "f1-score": 0.9538679914833215,
         "support": 716.0
       },
       "drift": {
-        "precision": 0.9350473612990527,
-        "recall": 0.9597222222222223,
-        "f1-score": 0.9472241261137766,
+        "precision": 0.9407806191117093,
+        "recall": 0.9708333333333333,
+        "f1-score": 0.9555707450444293,
         "support": 720.0
       },
-      "accuracy": 0.9463788300835655,
+      "accuracy": 0.9547353760445683,
       "macro avg": {
-        "precision": 0.9467202373209754,
-        "recall": 0.9463415580384854,
-        "f1-score": 0.9463650708417433,
+        "precision": 0.9552387944043395,
+        "recall": 0.9546904096834264,
+        "f1-score": 0.9547193682638754,
         "support": 1436.0
       },
       "weighted avg": {
-        "precision": 0.946687722345984,
-        "recall": 0.9463788300835655,
-        "f1-score": 0.9463674637533644,
+        "precision": 0.9551985209355579,
+        "recall": 0.9547353760445683,
+        "f1-score": 0.954721739786941,
         "support": 1436.0
       }
     },
-    "accuracy": 0.9463788300835655,
-    "drift_as_anomaly_rate": 0.04027777777777778,
-    "anomaly_as_drift_rate": 0.0670391061452514,
+    "accuracy": 0.9547353760445683,
+    "drift_as_anomaly_rate": 0.029166666666666667,
+    "anomaly_as_drift_rate": 0.061452513966480445,
     "feature_importance": {
-      "max_score": 0.028232780942926538,
-      "mean_score": 0.03292094641379931,
-      "score_slope": 0.011985148625233187,
-      "score_curvature": 0.017173802490227128,
-      "score_volatility": 0.045095437337322714,
-      "duration": 0.20225850941402987,
-      "sensor_concentration": 0.12490527806332867,
-      "num_sensors_flagged": 0.0220553421756245,
-      "max_single_sensor": 0.08356636826442128,
-      "deviation_at_peak": 0.06838379601626564,
-      "uncertainty_at_peak": 0.1300021279417501,
-      "stationarity_at_peak": 0.02062528336065846,
-      "uncertainty_slope": 0.01571750132529222,
-      "stationarity_max": 0.06866845973207035,
-      "du_ratio": 0.08853886253915792,
-      "signed_deviation_mean": 0.03987035535789223
+      "max_score": 0.029057568836570576,
+      "mean_score": 0.026460485738341546,
+      "score_slope": 0.013567548020629169,
+      "score_curvature": 0.02148393881086812,
+      "score_volatility": 0.04824247206289789,
+      "duration": 0.2049970802254166,
+      "sensor_concentration": 0.12371186080193404,
+      "num_sensors_flagged": 0.019949103235167267,
+      "max_single_sensor": 0.08116433602248317,
+      "deviation_at_peak": 0.06180312040796394,
+      "uncertainty_at_peak": 0.12999059294603119,
+      "stationarity_at_peak": 0.04168128570751647,
+      "uncertainty_slope": 0.016247591673606145,
+      "stationarity_max": 0.06068223561143238,
+      "du_ratio": 0.08174984593673018,
+      "signed_deviation_mean": 0.039210933962411376
     }
   },
   "random_forest_Original_12feat": {
@@ -280,51 +280,51 @@
   "xgboost_URD_16feat": {
     "classification_report": {
       "anomaly": {
-        "precision": 0.961864406779661,
-        "recall": 0.9511173184357542,
-        "f1-score": 0.9564606741573034,
+        "precision": 0.9549295774647887,
+        "recall": 0.946927374301676,
+        "f1-score": 0.9509116409537167,
         "support": 716.0
       },
       "drift": {
-        "precision": 0.9519230769230769,
-        "recall": 0.9625,
-        "f1-score": 0.9571823204419889,
+        "precision": 0.9476584022038568,
+        "recall": 0.9555555555555556,
+        "f1-score": 0.9515905947441217,
         "support": 720.0
       },
-      "accuracy": 0.9568245125348189,
+      "accuracy": 0.9512534818941504,
       "macro avg": {
-        "precision": 0.956893741851369,
-        "recall": 0.9568086592178771,
-        "f1-score": 0.9568214972996462,
+        "precision": 0.9512939898343227,
+        "recall": 0.9512414649286158,
+        "f1-score": 0.9512511178489191,
         "support": 1436.0
       },
       "weighted avg": {
-        "precision": 0.956879895988059,
-        "recall": 0.9568245125348189,
-        "f1-score": 0.9568225023780371,
+        "precision": 0.9512838628492797,
+        "recall": 0.9512534818941504,
+        "f1-score": 0.9512520634670115,
         "support": 1436.0
       }
     },
-    "accuracy": 0.9568245125348189,
-    "drift_as_anomaly_rate": 0.0375,
-    "anomaly_as_drift_rate": 0.04888268156424581,
+    "accuracy": 0.9512534818941504,
+    "drift_as_anomaly_rate": 0.044444444444444446,
+    "anomaly_as_drift_rate": 0.05307262569832402,
     "feature_importance": {
-      "max_score": 0.020193899050354958,
-      "mean_score": 0.028490539640188217,
-      "score_slope": 0.013296852819621563,
-      "score_curvature": 0.0075737303122878075,
-      "score_volatility": 0.07401171326637268,
-      "duration": 0.30502083897590637,
-      "sensor_concentration": 0.05622994154691696,
+      "max_score": 0.029803529381752014,
+      "mean_score": 0.027659090235829353,
+      "score_slope": 0.01181790977716446,
+      "score_curvature": 0.007111602462828159,
+      "score_volatility": 0.12790131568908691,
+      "duration": 0.26828479766845703,
+      "sensor_concentration": 0.05226486548781395,
       "num_sensors_flagged": 0.0,
-      "max_single_sensor": 0.08900865912437439,
-      "deviation_at_peak": 0.048057109117507935,
-      "uncertainty_at_peak": 0.08174426853656769,
-      "stationarity_at_peak": 0.02396516315639019,
-      "uncertainty_slope": 0.0216746237128973,
-      "stationarity_max": 0.09769750386476517,
-      "du_ratio": 0.11232700943946838,
-      "signed_deviation_mean": 0.020708255469799042
+      "max_single_sensor": 0.0898282453417778,
+      "deviation_at_peak": 0.09066054224967957,
+      "uncertainty_at_peak": 0.06763948500156403,
+      "stationarity_at_peak": 0.023354874923825264,
+      "uncertainty_slope": 0.022257711738348007,
+      "stationarity_max": 0.09670909494161606,
+      "du_ratio": 0.05917447805404663,
+      "signed_deviation_mean": 0.02553245984017849
     }
   },
   "xgboost_Original_12feat": {

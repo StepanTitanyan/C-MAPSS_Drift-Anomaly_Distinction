@@ -45,6 +45,13 @@ model:
   sigma_min: 1.0e-4
   sigma_activation: "softplus"
   latent_dim: 32
+  tranad:
+    d_model: 64
+    nhead: 4
+    num_layers: 2
+    dim_feedforward: 128
+    dropout: 0.1
+    phase2_weight: 1.5
 
 training:
   batch_size: 64

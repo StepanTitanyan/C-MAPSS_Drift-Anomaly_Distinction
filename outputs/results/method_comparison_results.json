@@ -31,6 +31,7 @@
       "mean_detection_delay": 0.5,
       "median_detection_delay": 0.0,
       "event_precision": 0.17479674796747968,
+      "event_f1": 0.2780804564098475,
       "n_true_events": 1074,
       "n_detected_events": 730,
       "n_alarm_events": 6396
@@ -68,6 +69,7 @@
       "mean_detection_delay": 0.7607282184655396,
       "median_detection_delay": 0.0,
       "event_precision": 0.17961089494163424,
+      "event_f1": 0.2871826104600467,
       "n_true_events": 1074,
       "n_detected_events": 769,
       "n_alarm_events": 6425
@@ -105,6 +107,7 @@
       "mean_detection_delay": 1.613053613053613,
       "median_detection_delay": 0.0,
       "event_precision": 0.19106434888685575,
+      "event_f1": 0.30837609426537393,
       "n_true_events": 1074,
       "n_detected_events": 858,
       "n_alarm_events": 6558
@@ -142,46 +145,86 @@
       "mean_detection_delay": 1.185483870967742,
       "median_detection_delay": 0.0,
       "event_precision": 0.19023136246786632,
+      "event_f1": 0.3079726127231929,
       "n_true_events": 1074,
       "n_detected_events": 868,
       "n_alarm_events": 6613
     }
   },
-  "D+FDE+Run (URD)": {
+  "URD (baseline)": {
     "overall": {
-      "roc_auc": 0.8395228875103793,
-      "pr_auc": 0.4295497346856586
+      "roc_auc": 0.8636077479282918,
+      "pr_auc": 0.4250253867140306
     },
     "per_type": {
       "spike": {
-        "roc_auc": 0.9397920750108891,
-        "pr_auc": 0.33391970404894133
+        "roc_auc": 0.9279742367203867,
+        "pr_auc": 0.27979241350498146
       },
       "drop": {
-        "roc_auc": 0.9356063846887769,
-        "pr_auc": 0.31198292932620125
+        "roc_auc": 0.9295207594424739,
+        "pr_auc": 0.21507657929113197
       },
       "persistent_offset": {
-        "roc_auc": 0.9555540179482622,
-        "pr_auc": 0.6335003018923708
+        "roc_auc": 0.9480977161091786,
+        "pr_auc": 0.5747770373074372
       },
       "noise_burst": {
-        "roc_auc": 0.8126466479078578,
-        "pr_auc": 0.39665203274276006
+        "roc_auc": 0.8108368785728207,
+        "pr_auc": 0.3605723625835835
       },
       "sensor_freeze": {
-        "roc_auc": 0.736675075768791,
-        "pr_auc": 0.3530830626071874
+        "roc_auc": 0.8229521693668327,
+        "pr_auc": 0.4467276517426472
       }
     },
     "event": {
-      "event_recall": 0.8268156424581006,
-      "mean_detection_delay": 1.2297297297297298,
+      "event_recall": 0.9031657355679702,
+      "mean_detection_delay": 1.2649484536082474,
       "median_detection_delay": 0.0,
-      "event_precision": 0.19264949540593462,
+      "event_precision": 0.196987087517934,
+      "event_f1": 0.3234314070957666,
       "n_true_events": 1074,
-      "n_detected_events": 888,
-      "n_alarm_events": 6639
+      "n_detected_events": 970,
+      "n_alarm_events": 6970
+    }
+  },
+  "TranAD": {
+    "overall": {
+      "roc_auc": 0.7379250710711627,
+      "pr_auc": 0.24754168942589208
+    },
+    "per_type": {
+      "spike": {
+        "roc_auc": 0.9143384564329123,
+        "pr_auc": 0.22419078559428132
+      },
+      "drop": {
+        "roc_auc": 0.9136847815941759,
+        "pr_auc": 0.2311304642060147
+      },
+      "persistent_offset": {
+        "roc_auc": 0.9368004990063005,
+        "pr_auc": 0.5301846934791739
+      },
+      "noise_burst": {
+        "roc_auc": 0.7911966931118468,
+        "pr_auc": 0.29461330193923596
+      },
+      "sensor_freeze": {
+        "roc_auc": 0.4620668894698491,
+        "pr_auc": 0.03624075369032102
+      }
+    },
+    "event": {
+      "event_recall": 0.5810055865921788,
+      "mean_detection_delay": 0.9006410256410257,
+      "median_detection_delay": 0.0,
+      "event_precision": 0.17972093023255814,
+      "event_f1": 0.2745240561049522,
+      "n_true_events": 1074,
+      "n_detected_events": 624,
+      "n_alarm_events": 5375
     }
   },
   "IForest": {
@@ -216,6 +259,7 @@
       "mean_detection_delay": 4.005376344086022,
       "median_detection_delay": 4.0,
       "event_precision": 0.04620187304890739,
+      "event_f1": 0.0729438823909737,
       "n_true_events": 1074,
       "n_detected_events": 186,
       "n_alarm_events": 4805

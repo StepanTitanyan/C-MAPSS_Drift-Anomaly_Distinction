@@ -1,521 +1,630 @@
 """
 experiments/05_generate_paper_outputs.py
 ==========================================
-Generates ALL paper figures and tables. Run AFTER Stage A.
+Generate paper figures/tables for the current URD baseline and TranAD comparison.
 
-Primary model: Gaussian GRU (gaussian_gru_best.pt).
-
-Outputs → outputs/for_paper/
-  fig1_pipeline_overview.png
-  fig2_urd_channels.png
-  fig3_sensor_freeze_blind_spot.png
-  fig4_roc_curves_by_type.png
-  fig5_signature_heatmap.png
-  fig6_feature_importance.png
-  fig7_prediction_bands.png
-  table1_anomaly_detection.csv
-  table2_drift_ablation.csv
-  table3_fingerprint.csv
-  table4_model_comparison.csv
-
-Usage:
-    python -m experiments.05_generate_paper_outputs
+Recommended run order:
+  1) python -m experiments.01_train_baselines
+  2) python -m experiments.02_synthetic_evaluation
+  3) python -m experiments.03_drift_classification
+  4) python -m experiments.04_urd_fingerprinting
+  5) python -m experiments.05_generate_paper_outputs
 """
 
-import os, sys, json, yaml, warnings, csv
-import numpy as np
+import csv
+import json
+import os
+import shutil
+import sys
+from typing import Dict, List
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.colors import LinearSegmentedColormap
-warnings.filterwarnings("ignore")
+import numpy as np
+import yaml
+from matplotlib.lines import Line2D
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 PAPER = os.path.join(ROOT, "outputs", "for_paper")
 os.makedirs(PAPER, exist_ok=True)
 
-PAL = {"blue":"#1565C0","orange":"#E65100","green":"#2E7D32","red":"#C62828","purple":"#6A1B9A","gray":"#546E7A","teal":"#00695C","amber":"#F57F17"}
-METHOD_PAL = {"NLL":PAL["gray"],"MSE":PAL["orange"],"D+Conformity":PAL["purple"],"D+FDE":PAL["amber"],"D+FDE+Run (URD)":PAL["blue"],"IForest":PAL["teal"]}
-ANOM_TYPES = ["spike","drop","persistent_offset","noise_burst","sensor_freeze"]
-DRIFT_TYPES = ["gradual_shift","sigmoid_plateau","accelerating","multi_sensor"]
-ALL_TYPES = ANOM_TYPES + DRIFT_TYPES
+from src.data.loader import load_train_data
+from src.data.preprocessing import compute_life_fraction, select_sensors, SensorScaler
+from src.data.splits import split_engines, apply_split
+from src.models.gaussian_gru import GaussianGRU
+from src.models.tranad import TranAD
+from src.anomaly.urd import URDScorer
+from src.synthetic.anomaly_generator import AnomalyGenerator
+
+PAL = {"blue":"#1565C0","orange":"#E65100","green":"#2E7D32","red":"#C62828","purple":"#6A1B9A","gray":"#546E7A","teal":"#00695C","amber":"#F57F17","urd":"#1565C0","tranad":"#E65100"}
+ANOM_TYPES = ["spike", "drop", "persistent_offset", "noise_burst", "sensor_freeze"]
+DRIFT_TYPES = ["gradual_shift", "sigmoid_plateau", "accelerating", "multi_sensor"]
+CATEGORY_MAP = {
+    "spike": "point_anomaly",
+    "drop": "point_anomaly",
+    "persistent_offset": "persistent_shift",
+    "noise_burst": "noise_anomaly",
+    "sensor_freeze": "sensor_malfunction",
+    "gradual_shift": "drift",
+    "sigmoid_plateau": "drift",
+    "accelerating": "drift",
+    "multi_sensor": "drift",
+}
+
 
 def _style():
-    plt.rcParams.update({"figure.facecolor":"white","axes.facecolor":"#F9F9F9","savefig.facecolor":"white","font.family":"DejaVu Sans","font.size":11,"axes.labelsize":12,"axes.titlesize":13,"xtick.labelsize":10,"ytick.labelsize":10,"legend.fontsize":9,"legend.framealpha":0.92,"lines.linewidth":1.8,"axes.linewidth":0.8,"axes.grid":True,"grid.alpha":0.22,"grid.linewidth":0.55,"axes.spines.top":False,"axes.spines.right":False})
+    plt.rcParams.update({
+        "figure.facecolor": "white",
+        "axes.facecolor": "#F9F9F9",
+        "savefig.facecolor": "white",
+        "font.family": "DejaVu Sans",
+        "font.size": 11,
+        "axes.labelsize": 12,
+        "axes.titlesize": 13,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 9,
+        "legend.framealpha": 0.92,
+        "lines.linewidth": 1.8,
+        "axes.linewidth": 0.8,
+        "axes.grid": True,
+        "grid.alpha": 0.22,
+        "grid.linewidth": 0.55,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+    })
+
 
 def _save(fig, name):
-    p = os.path.join(PAPER, name)
-    fig.savefig(p, dpi=200, bbox_inches="tight", pad_inches=0.15)
+    path = os.path.join(PAPER, name)
+    fig.savefig(path, dpi=200, bbox_inches="tight", pad_inches=0.15)
     plt.close(fig)
-    print(f"  saved  {name}")
+    print(f"  saved {name}")
+
 
 def _csv_write(rows, headers, name):
-    p = os.path.join(PAPER, name)
-    with open(p, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f); w.writerow(headers)
-        for r in rows: w.writerow(r)
-    print(f"  saved  {name}")
+    path = os.path.join(PAPER, name)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(headers)
+        for row in rows:
+            w.writerow(row)
+    print(f"  saved {name}")
+
 
 def _cfg():
-    with open(os.path.join(ROOT, "config", "config.yaml")) as f: return yaml.safe_load(f)
+    with open(os.path.join(ROOT, "config", "config.yaml"), "r") as f:
+        return yaml.safe_load(f)
+
+
+def _load_json(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 
 def _load_data(cfg):
-    from src.data.loader import load_train_data
-    from src.data.preprocessing import compute_life_fraction, select_sensors, SensorScaler
-    from src.data.splits import split_engines, apply_split
     sensors = cfg["dataset"]["selected_sensors"]
     df = load_train_data(cfg["paths"]["raw_data_dir"], cfg["dataset"]["subset"])
-    df = compute_life_fraction(df); df = select_sensors(df, sensors, keep_meta=True)
-    ti,vi,si = split_engines(df, cfg["preprocessing"]["train_ratio"], cfg["preprocessing"]["val_ratio"], cfg["preprocessing"]["test_ratio"], cfg["preprocessing"]["split_random_seed"])
-    sp = apply_split(df, ti, vi, si); sc = SensorScaler(sensors)
-    sp["train"]=sc.fit_transform(sp["train"]); sp["val"]=sc.transform(sp["val"]); sp["test"]=sc.transform(sp["test"])
-    return sp, sensors
+    df = compute_life_fraction(df)
+    df = select_sensors(df, sensors, keep_meta=True)
+    ti, vi, si = split_engines(
+        df,
+        cfg["preprocessing"]["train_ratio"],
+        cfg["preprocessing"]["val_ratio"],
+        cfg["preprocessing"]["test_ratio"],
+        cfg["preprocessing"]["split_random_seed"],
+    )
+    splits = apply_split(df, ti, vi, si)
+    scaler = SensorScaler(sensors)
+    splits["train"] = scaler.fit_transform(splits["train"])
+    splits["val"] = scaler.transform(splits["val"])
+    splits["test"] = scaler.transform(splits["test"])
+    return splits, sensors
+
 
 def _load_gru(cfg, device="cpu"):
-    import torch
-    from src.models.gaussian_gru import GaussianGRU
-    m = GaussianGRU(input_size=len(cfg["dataset"]["selected_sensors"]), hidden_size=cfg["model"]["hidden_size"], num_layers=cfg["model"]["num_layers"], dropout=0.0, sigma_min=cfg["model"]["sigma_min"])
+    m = GaussianGRU(
+        input_size=len(cfg["dataset"]["selected_sensors"]),
+        hidden_size=cfg["model"]["hidden_size"],
+        num_layers=cfg["model"]["num_layers"],
+        dropout=0.0,
+        sigma_min=cfg["model"]["sigma_min"],
+    )
     ckpt = os.path.join(cfg["paths"]["model_dir"], "gaussian_gru_best.pt")
-    if not os.path.exists(ckpt): ckpt = os.path.join(cfg["paths"]["model_dir"], "gaussian_lstm_best.pt")
-    m.load_state_dict(torch.load(ckpt, map_location=device)); m.eval(); return m
+    import torch
+    m.load_state_dict(torch.load(ckpt, map_location=device))
+    m.eval()
+    return m
 
-def _infer(model, values, W, device="cpu"):
+
+def _load_tranad(cfg, device="cpu"):
+    tcfg = cfg["model"].get("tranad", {})
+    m = TranAD(
+        input_size=len(cfg["dataset"]["selected_sensors"]),
+        window_size=cfg["preprocessing"]["window_size"],
+        d_model=tcfg.get("d_model", 64),
+        nhead=tcfg.get("nhead", 4),
+        num_layers=tcfg.get("num_layers", 2),
+        dim_feedforward=tcfg.get("dim_feedforward", 128),
+        dropout=tcfg.get("dropout", 0.1),
+    )
+    import torch
+    ckpt = os.path.join(cfg["paths"]["model_dir"], "tranad_best.pt")
+    m.load_state_dict(torch.load(ckpt, map_location=device))
+    m.eval()
+    return m
+
+
+def _infer_gru(model, values, W, device="cpu"):
     import torch
     T, d = values.shape
-    if T <= W: return None, None, None
-    n = T - W
-    y=np.zeros((n,d)); mu=np.zeros((n,d)); sg=np.zeros((n,d))
+    if T <= W:
+        return None, None, None
+    X = np.array([values[i:i + W] for i in range(T - W)], dtype=np.float32)
+    y = np.array([values[i + W] for i in range(T - W)], dtype=np.float32)
     with torch.no_grad():
-        for i in range(n):
-            x = torch.FloatTensor(values[i:i+W]).unsqueeze(0).to(device)
-            mo, so = model(x); mu[i]=mo.cpu().numpy().flatten(); sg[i]=so.cpu().numpy().flatten(); y[i]=values[i+W]
-    return y, mu, sg
+        batch = torch.tensor(X, dtype=torch.float32).to(device)
+        mu, sigma = model(batch)
+    return y, mu.cpu().numpy(), sigma.cpu().numpy()
 
-def _fit_urd(model, val_df, sensors, W):
-    from src.anomaly.urd import URDScorer
-    urd = URDScorer(fde_window=5); ys,ms,ss=[],[],[]
+
+
+
+def _infer_tranad(model, values, W, device="cpu"):
+    import torch
+    T, d = values.shape
+    if T <= W:
+        return None, None, None
+    X = np.array([values[i:i + W] for i in range(T - W)], dtype=np.float32)
+    y = np.array([values[i + W] for i in range(T - W)], dtype=np.float32)
+    with torch.no_grad():
+        batch = torch.tensor(X, dtype=torch.float32).to(device)
+        pred1, pred2 = model(batch)
+    return y, pred1.cpu().numpy(), pred2.cpu().numpy()
+
+def _fit_urd(model, val_df, sensors, W, device="cpu"):
+    ys, ms, ss = [], [], []
     for eid in sorted(val_df["unit_nr"].unique()):
-        v = val_df[val_df["unit_nr"]==eid].sort_values("time_cycles")[sensors].values
-        y,m,s = _infer(model, v, W)
-        if y is not None: ys.append(y); ms.append(m); ss.append(s)
-    if ys: urd.fit(np.concatenate(ys), np.concatenate(ms), np.concatenate(ss))
+        vals = val_df[val_df["unit_nr"] == eid].sort_values("time_cycles")[sensors].values
+        y, mu, sigma = _infer_gru(model, vals, W, device)
+        if y is not None:
+            ys.append(y); ms.append(mu); ss.append(sigma)
+    urd = URDScorer(fde_window=5)
+    urd.fit(np.concatenate(ys), np.concatenate(ms), np.concatenate(ss))
     return urd
 
-def _fit_nll(model, val_df, sensors, W):
-    from src.anomaly.scoring import AnomalyScorer
-    sc = AnomalyScorer(score_type="nll"); ys,ms,ss=[],[],[]
-    for eid in sorted(val_df["unit_nr"].unique()):
-        v = val_df[val_df["unit_nr"]==eid].sort_values("time_cycles")[sensors].values
-        y,m,s = _infer(model, v, W)
-        if y is not None: ys.append(y); ms.append(m); ss.append(s)
-    if ys: sc.fit_normalization(np.concatenate(ys), np.concatenate(ms), np.concatenate(ss))
-    return sc
 
 def _ed(df, eid, sensors):
-    edf = df[df["unit_nr"]==eid].sort_values("time_cycles")
-    return {"engine_id":int(eid),"sensor_values":edf[sensors].values.copy(),"cycles":edf["time_cycles"].values.copy(),"life_fracs":edf["life_fraction"].values.copy()}
+    edf = df[df["unit_nr"] == eid].sort_values("time_cycles")
+    return {
+        "engine_id": int(eid),
+        "sensor_values": edf[sensors].values.copy(),
+        "cycles": edf["time_cycles"].values.copy(),
+        "life_fracs": edf["life_fraction"].values.copy(),
+    }
+
 
 def _inject_drift(base, dtype, T):
-    dv=base.copy(); ds=T//2
+    dv = base.copy()
+    ds = T // 2
     for t in range(ds, T):
-        p=(t-ds)/max(1,T-ds)
-        if dtype=="gradual_shift": dv[t,0]+=p*3.0
-        elif dtype=="sigmoid_plateau": dv[t,0]+=3.0/(1+np.exp(-10*(p-0.5)))
-        elif dtype=="accelerating": dv[t,0]+=p**2*4.0
-        elif dtype=="multi_sensor": dv[t,0]+=p*2.0; dv[t,min(2,dv.shape[1]-1)]+=p*1.5
+        p = (t - ds) / max(1, T - ds)
+        if dtype == "gradual_shift":
+            dv[t, 0] += p * 3.0
+        elif dtype == "sigmoid_plateau":
+            dv[t, 0] += 3.0 / (1 + np.exp(-10 * (p - 0.5)))
+        elif dtype == "accelerating":
+            dv[t, 0] += p ** 2 * 4.0
+        elif dtype == "multi_sensor":
+            dv[t, 0] += p * 2.0
+            dv[t, min(2, dv.shape[1] - 1)] += p * 1.5
     return dv, ds
 
-# ── FIG 1 — Pipeline with Math ────────────────────────────────────────────
-def fig1_pipeline():
+
+def fig1_pipeline_overview():
     _style()
     fig, ax = plt.subplots(figsize=(19, 8.5))
-    ax.set_xlim(0,19); ax.set_ylim(0,8.5); ax.axis("off")
-    BOXES = [
-        (0.2,4.2,2.6,2.8,"STEP 1\nRaw Data","train_FD001.txt\n100 engines\n26 cols per row\nwhitespace-delim\nno header","#E3F2FD"),
-        (3.2,4.2,2.6,2.8,"STEP 2\nPreprocessing","21→7 sensors\nCorr + variance\nZ-score scale\nSplit by engine\n70 / 15 / 15","#E8F5E9"),
-        (6.2,4.2,2.6,2.8,"STEP 3\nGaussian GRU","Input: (30, 7)\n→ μ ∈ ℝ⁷\n→ σ ∈ ℝ⁷\nTrained NLL\nlife_frac ≤ 0.5","#FFF3E0"),
-        (9.2,4.2,2.6,2.8,"STEP 4\nURD Scoring","D_t  deviation\nU_t  uncertainty\nS_t  stationarity\ncombined=max(D,S)\nper time step","#FCE4EC"),
-        (12.2,5.4,2.6,1.5,"STEP 5a\nClassify","drift vs anomaly\n16-feat RF/LR","#EDE7F6"),
-        (12.2,4.2,2.6,1.0,"STEP 5b\nFingerprint","5-class type ID","#E8EAF6"),
-        (16.0,4.2,2.8,2.8,"STEP 6\nDiagnosis","Event type\nSeverity score\nAffected sensor\nRecommendation\n→ maintenance","#E8F5E9")]
-    for bx,by,bw,bh,title,body,col in BOXES:
-        ax.add_patch(mpatches.FancyBboxPatch((bx,by),bw,bh,boxstyle="round,pad=0.12",facecolor=col,edgecolor="#546E7A",linewidth=1.5))
-        ax.text(bx+bw/2,by+bh-0.28,title,ha="center",va="top",fontsize=9.5,fontweight="bold",color="#1A237E")
-        ax.text(bx+bw/2,by+0.18,body,ha="center",va="bottom",fontsize=8.1,color="#263238",linespacing=1.55)
-    akw = dict(arrowstyle="-|>",color="#37474F",lw=1.8)
-    for x1,x2,yc in [(2.8,3.2,5.6),(5.8,6.2,5.6),(8.8,9.2,5.6),(11.8,12.2,6.15),(11.8,12.2,4.7),(14.8,16.0,5.6)]:
-        ax.annotate("",xy=(x2,yc),xytext=(x1,yc),arrowprops=dict(**akw))
-    ax.annotate("",xy=(16.0,5.6),xytext=(14.8,6.15),arrowprops=dict(arrowstyle="-|>",color="#37474F",lw=1.3))
-    ax.annotate("",xy=(16.0,5.6),xytext=(14.8,4.7),arrowprops=dict(arrowstyle="-|>",color="#37474F",lw=1.3))
-    MATH = [
-        (1.5,4.05,"$\\mathbf{x}_t\\in\\mathbb{R}^{21}$\nunit_nr, time_cycles\n21 raw sensors"),
-        (4.5,4.05,"$z_j=(x_j-\\bar{x}_j^{tr})/s_j^{tr}$\nfit scaler on train only\nengine-level split"),
-        (7.5,4.05, r"$\mathcal{L}=\frac{1}{d}\sum_j[\log \sigma_j+\frac{(x_j-\mu_j)^2}{2\sigma_j^2}]$" + "\ncalibrated uncertainty"),
-        (10.5,4.05, r"$D_t=\frac{1}{d}\sum_j r_{t,j}^2$  $r=\frac{x-\mu}{\sigma}$" + "\n" + r"$U_t=\frac{1}{d}\sum_j \sigma_{t,j}/\sigma_{ref,j}$" + "\n" + r"$S_t=FDE(t)+\gamma \max(0,run-2)$"),
-        (13.5,4.05,"16-dim feature vec\nD/U ratio = key\n5-class RF"),
-        (17.4,4.05,"sensor_freeze\n→ replace sensor\ngradual_drift\n→ schedule maint.")]
-    for x,y,txt in MATH:
-        ax.text(x,y,txt,ha="center",va="top",fontsize=7.6,color="#37474F",style="italic",linespacing=1.5,bbox=dict(boxstyle="round,pad=0.28",facecolor="#FAFAFA",alpha=0.88,edgecolor="#B0BEC5"))
-    ax.text(9.5,8.25,"Training constraint: GRU trained ONLY on life_fraction ≤ 0.5  →  model learns HEALTHY patterns  →  deviations flag anomalies",ha="center",fontsize=9.5,color=PAL["blue"],fontweight="bold",bbox=dict(boxstyle="round,pad=0.35",facecolor="#E3F2FD",edgecolor=PAL["blue"],alpha=0.92))
-    ax.set_title("URD Detection Pipeline — From Raw .txt Files to Anomaly Diagnosis\nPrimary model: Gaussian GRU  |  Novel contribution: Stationarity channel $S_t$",fontsize=13.5,fontweight="bold",pad=10)
-    _save(fig,"fig1_pipeline_overview.png")
+    ax.set_xlim(0, 21)
+    ax.set_ylim(0, 8.5)
+    ax.axis("off")
 
-# ── FIG 2 — URD Channels ─────────────────────────────────────────────────
-def fig2_urd_channels(model, urd, test_df, sensors, W):
+    boxes = [
+        (0.2, 4.2, 2.6, 2.8, "STEP 1\nRaw Data", "train_FD001.txt\n100 engines\n26 cols per row\nwhitespace-delim\nno header", "#E3F2FD"),
+        (3.2, 4.2, 2.6, 2.8, "STEP 2\nPreprocessing", "21→7 sensors\nengine split\nwindow = 30\nZ-score scale\nhealthy-only train", "#E8F5E9"),
+        (6.2, 4.2, 2.8, 2.8, "STEP 3\nGaussian GRU", "Input: (30, 7)\n→ μ ∈ ℝ⁷\n→ σ ∈ ℝ⁷\ntrained with NLL\nlife_frac ≤ 0.5", "#FFF3E0"),
+        (9.5, 4.2, 3.1, 2.8, "STEP 4\nURD Baseline", "D: calibrated Mahalanobis\nU: sigma inflation\nS: tuned FDE + run\ncombined = 0.35D + 0.65S", "#FCE4EC"),
+        (13.1, 4.2, 3.0, 2.8, "STEP 5\nTranAD Baseline", "2-phase transformer\nself-conditioning\nnext-step error score\ndirect TSAD comparator", "#E8F5E9"),
+        (16.6, 5.4, 2.8, 1.5, "STEP 6a\nClassify", "drift vs anomaly\n16-feature URD model", "#EDE7F6"),
+        (16.6, 4.2, 2.8, 1.0, "STEP 6b\nFingerprint", "5-class type ID\nfeature importance", "#E8EAF6"),
+    ]
+
+    for bx, by, bw, bh, title, body, col in boxes:
+        ax.add_patch(mpatches.FancyBboxPatch((bx, by), bw, bh, boxstyle="round,pad=0.12",
+                                            facecolor=col, edgecolor="#546E7A", linewidth=1.5))
+        ax.text(bx + bw / 2, by + bh - 0.28, title, ha="center", va="top", fontsize=9.5,
+                fontweight="bold", color="#1A237E")
+        ax.text(bx + bw / 2, by + 0.18, body, ha="center", va="bottom", fontsize=8.1,
+                color="#263238", linespacing=1.55)
+
+    akw = dict(arrowstyle="-|>", color="#37474F", lw=1.8)
+    for x1, x2, yc in [(2.8, 3.2, 5.6), (5.8, 6.2, 5.6), (9.0, 9.5, 5.6), (12.6, 13.1, 5.6), (16.1, 16.6, 6.15), (16.1, 16.6, 4.7)]:
+        ax.annotate("", xy=(x2, yc), xytext=(x1, yc), arrowprops=akw)
+
+    math_boxes = [
+        (1.5, 4.05, r"$\mathbf{x}_t\in\mathbb{R}^{21}$" + "\nunit_nr, time_cycles\n21 raw sensors"),
+        (4.5, 4.05, r"$z_j=(x_j-\bar{x}_j^{tr})/s_j^{tr}$" + "\nfit scaler on train only\nengine-level split"),
+        (7.6, 4.05, r"$\mathcal{L}=\frac{1}{d}\sum_j[\log \sigma_j+\frac{(x_j-\mu_j)^2}{2\sigma_j^2}]$" + "\nprobabilistic next-step learning"),
+        (11.05, 4.05, r"$D_t=r_t^T\Sigma_r^{-1}r_t$  with  $r=\frac{x-\mu}{\tau\odot\sigma}$" + "\n" + r"$U_t=\frac{1}{d}\sum_j \sigma^{eff}_{t,j}/\sigma_{ref,j}$" + "\n" + r"$S_t=FDE(t)+3\cdot\max(0,run-1)$"),
+        (14.6, 4.05, "TranAD score = refined\ntransformer next-step error\nsame FD001 protocol"),
+        (18.0, 4.05, "drift vs anomaly\n5-class fingerprint\ninterpretable outputs"),
+    ]
+    for x, y, txt in math_boxes:
+        ax.text(x, y, txt, ha="center", va="top", fontsize=7.6, color="#37474F", style="italic",
+                linespacing=1.5, bbox=dict(boxstyle="round,pad=0.28", facecolor="#FAFAFA",
+                alpha=0.88, edgecolor="#B0BEC5"))
+
+    ax.text(10.5, 8.1,
+            "Matched comparison setting: FD001, same 7 sensors, window = 30, engine split, healthy-only training",
+            ha="center", fontsize=9.5, color=PAL["blue"], fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.35", facecolor="#E3F2FD", edgecolor=PAL["blue"], alpha=0.92))
+
+    ax.set_title("Project Pipeline with External TSAD Baseline Added", fontsize=13.5, fontweight="bold", pad=10)
+    _save(fig, "fig1_pipeline_overview.png")
+
+def fig2_roc_pr_compare(stage_c):
     _style()
-    scenarios = []
-    for eid in sorted(test_df["unit_nr"].unique())[:6]:
-        ed = _ed(test_df,eid,sensors); base=ed["sensor_values"]; T=len(base); lf=ed["life_fracs"]
-        if T<80: continue
-        mid=T//3
-        sv=base.copy(); sv[mid,0]+=6.5; sv[mid+1,0]+=3.0
-        scenarios.append(("(a)  Spike Anomaly — D fires",sv,lf,PAL["red"]))
-        dv,_=_inject_drift(base,"gradual_shift",T)
-        scenarios.append(("(b)  Gradual Drift — U fires",dv,lf,PAL["green"]))
-        fv=base.copy(); fv[mid:mid+45,1]=fv[mid,1]
-        scenarios.append(("(c)  Sensor Freeze — S fires",fv,lf,PAL["blue"]))
-        break
-    if not scenarios: print("  skipped fig2 — trajectories too short"); return
-    ch_labels=[r"$D_t=\frac{1}{d}\sum_j r_{t,j}^2$   (Deviation, $\chi^2$ upper tail)",r"$U_t=\frac{1}{d}\sum_j\sigma_{t,j}/\sigma_{ref,j}$   (Uncertainty ratio)",r"$S_t=FDE(t)+\gamma\cdot\max(0,run-2)$   (Stationarity)"]
-    ch_colors=[PAL["red"],PAL["orange"],PAL["blue"]]
-    fig,axes=plt.subplots(3,3,figsize=(16,9),sharex="col")
-    for row,(title,vals,lf,tc) in enumerate(scenarios):
-        y,mu,sg=_infer(model,vals,W)
-        if y is None: continue
-        res=urd.score(y,mu,sg); n=len(res["deviation"]); lf_p=lf[W:W+n]
-        chs=[res["deviation"],res["uncertainty"],res["stationarity"]]
-        for col in range(3):
-            ax=axes[row,col]; ch=np.nan_to_num(chs[col],nan=0.0)
-            if col!=1: ch=np.clip(ch,0,None)
-            ax.plot(lf_p,ch,color=ch_colors[col],lw=1.9,alpha=0.92)
-            base_val=1.0 if col==1 else 0.0
-            ax.fill_between(lf_p,base_val,ch,alpha=0.13,color=ch_colors[col])
-            if col==1: ax.axhline(1.0,color=PAL["gray"],ls="--",lw=0.9,alpha=0.6,label="U=1 (baseline)"); ax.legend(fontsize=8,loc="upper left")
-            pk=int(np.argmax(np.abs(ch-base_val)))
-            if abs(ch.max()-base_val)>0.1: ax.annotate(f"  peak={ch[pk]:.2f}",xy=(lf_p[pk],ch[pk]),fontsize=8,color=ch_colors[col],fontweight="bold")
-            if row==0: ax.set_title(ch_labels[col],fontsize=9.5,fontweight="bold",pad=7)
-            if col==0: ax.set_ylabel(title,fontsize=9.5,color=tc,fontweight="bold",labelpad=8)
-            if row==2: ax.set_xlabel("Life Fraction",fontsize=10)
-            ax.tick_params(labelsize=8.5)
-    fig.suptitle("URD Three-Channel Decomposition — Each Anomaly Type Activates a Different Channel\n"+r"Normalised residual: $r_{t,j}=(x_{t,j}-\mu_{t,j})/\sigma_{t,j}$  ~  N(0,1) under normal conditions",fontsize=12,fontweight="bold",y=1.01)
-    plt.tight_layout(); _save(fig,"fig2_urd_channels.png")
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    urd = stage_c["urd"]
+    tranad = stage_c["tranad"]
+    axes[0].plot(urd["curves"]["roc"][0], urd["curves"]["roc"][1], color=PAL["urd"], label=f"URD (AUC={urd['overall']['roc_auc']:.3f})")
+    axes[0].plot(tranad["curves"]["roc"][0], tranad["curves"]["roc"][1], color=PAL["tranad"], label=f"TranAD (AUC={tranad['overall']['roc_auc']:.3f})")
+    axes[0].plot([0, 1], [0, 1], "k--", alpha=0.3)
+    axes[0].set_xlabel("False Positive Rate")
+    axes[0].set_ylabel("True Positive Rate")
+    axes[0].set_title("ROC Curve — URD vs TranAD")
+    axes[0].legend()
 
-# ── FIG 3 — Sensor Freeze Blind Spot ─────────────────────────────────────
-def fig3_sensor_freeze(model, urd, nll_sc, test_df, sensors, W):
+    axes[1].plot(urd["curves"]["pr"][1], urd["curves"]["pr"][0], color=PAL["urd"], label=f"URD (AP={urd['overall']['pr_auc']:.3f})")
+    axes[1].plot(tranad["curves"]["pr"][1], tranad["curves"]["pr"][0], color=PAL["tranad"], label=f"TranAD (AP={tranad['overall']['pr_auc']:.3f})")
+    axes[1].set_xlabel("Recall")
+    axes[1].set_ylabel("Precision")
+    axes[1].set_title("PR Curve — URD vs TranAD")
+    axes[1].legend()
+    fig.suptitle("Direct Detector Comparison on Synthetic FD001 Test Suite", fontweight="bold")
+    _save(fig, "fig2_roc_pr_urd_vs_tranad.png")
+
+
+def fig3_threshold_sweep(csv_path):
     _style()
-    for eid in sorted(test_df["unit_nr"].unique()):
-        ed=_ed(test_df,eid,sensors); base=ed["sensor_values"]; lf=ed["life_fracs"]; T=len(base)
-        if T<100: continue
-        fs,fe=T//4,3*T//4
-        norm_v=base.copy(); frz_v=base.copy(); frz_v[fs:fe,1]=frz_v[fs,1]
-        y_n,mu_n,sg_n=_infer(model,norm_v,W); y_f,mu_f,sg_f=_infer(model,frz_v,W)
-        if y_n is None or y_f is None: continue
-        res_n=urd.score(y_n,mu_n,sg_n); res_f=urd.score(y_f,mu_f,sg_f)
-        nll_n,_=nll_sc.score(y_n,mu_n,sg_n,normalize=True); nll_f,_=nll_sc.score(y_f,mu_f,sg_f,normalize=True)
-        n=min(len(nll_n),len(nll_f),len(res_n["stationarity"])); lf_p=lf[W:W+n]
-        fs_lf=lf[min(fs,T-1)]; fe_lf=lf[min(fe,T-1)]
-        fig,axes=plt.subplots(1,2,figsize=(14,5.5))
-        for ax,yn,yf,ylabel,ttl,note,c in [
-            (axes[0],nll_n[:n],nll_f[:n],"NLL Anomaly Score (normalised)","(a)  NLL Scoring — BLIND to sensor freeze","Frozen sensor produces small residuals\n→ model sees it as 'extra normal'\nROC-AUC = 0.4398 (sub-random)",PAL["red"]),
-            (axes[1],np.clip(res_n["stationarity"][:n],0,None),np.clip(res_f["stationarity"][:n],0,None),r"Stationarity  $S_t=FDE(t)+\gamma\cdot\max(0,run-2)$","(b)  URD Stationarity — DETECTS sensor freeze","FDE→0 when sensor stops changing\nRun-length bonus fires on repeated values\nROC-AUC = 0.7367  (+0.2969 vs NLL)",PAL["blue"])]:
-            ax.plot(lf_p,yn,color=PAL["green"],lw=1.7,label="Normal engine",alpha=0.9)
-            ax.plot(lf_p,yf,color=c,lw=1.7,label="Frozen sensor (s_4)",alpha=0.92)
-            ax.axvspan(fs_lf,fe_lf,alpha=0.07,color=c)
-            ax.axvline(fs_lf,color=c,ls="--",lw=1.1,alpha=0.65,label="Freeze start/end")
-            ax.axvline(fe_lf,color=c,ls="--",lw=1.1,alpha=0.65)
-            ax.set_xlabel("Life Fraction",fontweight="bold"); ax.set_ylabel(ylabel,fontweight="bold")
-            ax.set_title(ttl,fontweight="bold",color=c,pad=10); ax.legend(loc="upper left",fontsize=9)
-            ax.text(0.5,0.06,note,transform=ax.transAxes,ha="center",fontsize=9,color=c,style="italic",bbox=dict(boxstyle="round,pad=0.35",facecolor="white",alpha=0.93,edgecolor=c))
-        fig.suptitle("The Sensor Freeze Blind Spot — Why Standard NLL Fails and URD Stationarity Detects\nStandard NLL only detects LARGE residuals.  $S_t$ detects ZERO variance (frozen sensor).",fontsize=12.5,fontweight="bold")
-        plt.tight_layout(); _save(fig,"fig3_sensor_freeze_blind_spot.png"); break
+    rows = []
+    with open(csv_path, "r", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            rows.append(row)
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8), sharex=True)
+    for method, color in [("URD", PAL["urd"]), ("TranAD", PAL["tranad"])]:
+        sub = [r for r in rows if r["method"] == method]
+        thr = [float(r["threshold"]) for r in sub]
+        prec = [float(r["precision"]) for r in sub]
+        rec = [float(r["recall"]) for r in sub]
+        f1 = [float(r["f1"]) for r in sub]
+        axes[0].plot(thr, prec, color=color, label=method)
+        axes[1].plot(thr, rec, color=color, label=method)
+        axes[2].plot(thr, f1, color=color, label=method)
+    for ax, ttl in zip(axes, ["Precision", "Recall", "F1"]):
+        ax.set_title(ttl, fontweight="bold")
+        ax.set_xlabel("Threshold")
+        ax.legend()
+    axes[0].set_ylabel("Metric value")
+    fig.suptitle("Threshold Sweeps — Point-level Detection Trade-offs", fontweight="bold")
+    _save(fig, "fig3_threshold_sweep.png")
 
-# ── FIG 4 + TABLE 1 — ROC Curves ─────────────────────────────────────────
-def fig4_roc_table1(model, urd, nll_sc, test_df, sensors, W):
+
+def fig4_roc_curves_by_type(cfg, splits, sensors, W, model, urd, tranad_model, device="cpu"):
     from sklearn.metrics import roc_curve, roc_auc_score
     from src.synthetic.anomaly_generator import AnomalyGenerator
-    from src.anomaly.scoring import compute_nll_scores, compute_mse_scores
-    from src.models.baselines import IsolationForestBaseline
     _style()
-    gen=AnomalyGenerator(sensors,random_seed=42); eids=sorted(test_df["unit_nr"].unique())[:10]
-    normal_X=[]
-    for eid in eids[:8]:
-        edf=test_df[test_df["unit_nr"]==eid].sort_values("time_cycles"); sub=edf[edf["life_fraction"]<=0.5]
-        if len(sub)<=W: continue
-        vals=sub[sensors].values
-        for i in range(min(50,len(vals)-W)): normal_X.append(vals[i:i+W])
-    nX=np.array(normal_X[:300]) if normal_X else np.zeros((50,W,len(sensors)))
-    ifor=IsolationForestBaseline(); ifor.fit(nX)
-    mse_vals=[]
-    for eid in eids[:5]:
-        v=test_df[test_df["unit_nr"]==eid].sort_values("time_cycles")[sensors].values
-        y,mu,sg=_infer(model,v,W)
-        if y is not None: ms,_=compute_mse_scores(y,mu); mse_vals.extend(ms.tolist())
-    mse_mn=np.mean(mse_vals) if mse_vals else 0.0; mse_std=max(np.std(mse_vals),1e-8) if mse_vals else 1.0
-    methods=list(METHOD_PAL.keys())
-    all_scores={m:{at:{"scores":[],"labels":[]} for at in ANOM_TYPES} for m in methods}
+    gen = AnomalyGenerator(sensors, random_seed=42)
+    eids = sorted(splits["test"]["unit_nr"].unique())[:10]
+    methods = ["URD (baseline)", "TranAD"]
+    colors = {"URD (baseline)": PAL["blue"], "TranAD": PAL["orange"]}
+    all_scores = {m: {at: {"scores": [], "labels": []} for at in ANOM_TYPES} for m in methods}
+
     for eid in eids:
-        ed=_ed(test_df,eid,sensors); T=len(ed["sensor_values"])
-        if T<=W+20: continue
+        ed = _ed(splits["test"], eid, sensors)
+        T = len(ed["sensor_values"])
+        if T <= W + 20:
+            continue
         for at in ANOM_TYPES:
             try:
-                traj=gen.create_injected_trajectory(ed,at,injection_life_frac=0.5,magnitude=4.0,duration=15)
-                y,mu,sg=_infer(model,traj.sensor_values,W)
-                if y is None: continue
-                n=len(y); lab=traj.labels[W:W+n]
-                nll_s,_=nll_sc.score(y,mu,sg,normalize=True); mse_s_raw,_=compute_mse_scores(y,mu)
-                mse_s=(mse_s_raw-mse_mn)/mse_std; urd_s=urd.score(y,mu,sg)["combined"]
-                r_sq=((y-mu)/sg)**2; d_n=(np.mean(r_sq,axis=1)-1.0)/max(np.std(np.mean(r_sq,axis=1)),1e-8)
-                w_chi=10; conf_s=np.zeros(n); d2=sg.shape[1]
-                for t in range(w_chi-1,n):
-                    Q=np.sum(r_sq[t-w_chi+1:t+1]); conf_s[t]=max(0,(w_chi*d2-Q)/np.sqrt(2*w_chi*d2))
-                c_n=(conf_s-conf_s[:max(1,n//2)].mean())/max(conf_s[:max(1,n//2)].std(),1e-8)
-                dconf=np.maximum(d_n[:n],c_n[:n])
-                wins=np.stack([traj.sensor_values[i:i+W] for i in range(n)],axis=0); if_s=ifor.score(wins)
-                for m,s in [("NLL",nll_s[:n]),("MSE",mse_s[:n]),("D+Conformity",dconf[:n]),("D+FDE",(nll_s[:n]*0.65+urd_s[:n]*0.35)),("D+FDE+Run (URD)",urd_s[:n]),("IForest",if_s[:n])]:
-                    all_scores[m][at]["scores"].extend(s.tolist()); all_scores[m][at]["labels"].extend(lab.tolist())
-            except Exception: continue
-    fig,axes=plt.subplots(2,3,figsize=(16,9)); flat=axes.flatten(); table_rows=[]
-    for idx,at in enumerate(ANOM_TYPES):
-        ax=flat[idx]; row=[at.replace("_"," ").title()]
+                traj = gen.create_injected_trajectory(ed, at, injection_life_frac=0.5, magnitude=4.0, duration=15)
+                y, mu, sigma = _infer_gru(model, traj.sensor_values, W, device)
+                ty, p1, p2 = _infer_tranad(tranad_model, traj.sensor_values, W, device)
+                if y is None or ty is None:
+                    continue
+                n = min(len(y), len(ty))
+                lab = traj.labels[W:W+n]
+                urd_s = urd.score(y[:n], mu[:n], sigma[:n], normalize=True)["combined"][:n]
+                tranad_err = np.mean((ty[:n] - p2[:n]) ** 2, axis=1)
+                # robust z-normalization per trajectory to match plotting style from old figure
+                tr_mu = float(np.mean(tranad_err[:max(5, n // 3)]))
+                tr_sd = max(float(np.std(tranad_err[:max(5, n // 3)])), 1e-8)
+                tranad_s = (tranad_err - tr_mu) / tr_sd
+                all_scores["URD (baseline)"][at]["scores"].extend(urd_s.tolist())
+                all_scores["URD (baseline)"][at]["labels"].extend(lab.tolist())
+                all_scores["TranAD"][at]["scores"].extend(tranad_s.tolist())
+                all_scores["TranAD"][at]["labels"].extend(lab.tolist())
+            except Exception:
+                continue
+
+    fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+    flat = axes.flatten()
+    table_rows = []
+    for idx, at in enumerate(ANOM_TYPES):
+        ax = flat[idx]
+        row = [at.replace("_", " ").title()]
         for mn in methods:
-            s=np.array(all_scores[mn][at]["scores"]); l=np.array(all_scores[mn][at]["labels"])
-            if len(np.unique(l))<2: row.append("n/a"); continue
-            try:
-                auc_v=roc_auc_score(l,s); fpr,tpr,_=roc_curve(l,s)
-                lw=2.8 if mn=="D+FDE+Run (URD)" else 1.3; ls="-" if mn=="D+FDE+Run (URD)" else "--"
-                ax.plot(fpr,tpr,color=METHOD_PAL[mn],lw=lw,ls=ls,label=f"{mn} ({auc_v:.3f})",alpha=0.94)
-            except Exception: auc_v=float("nan")
-            row.append(f"{auc_v:.3f}" if not (isinstance(auc_v,float) and np.isnan(auc_v)) else "n/a")
+            s = np.array(all_scores[mn][at]["scores"])
+            l = np.array(all_scores[mn][at]["labels"])
+            if len(s) == 0 or len(np.unique(l)) < 2:
+                row.append("n/a")
+                continue
+            auc_v = roc_auc_score(l, s)
+            fpr, tpr, _ = roc_curve(l, s)
+            lw = 2.8 if mn == "URD (baseline)" else 1.6
+            ls = "-" if mn == "URD (baseline)" else "--"
+            ax.plot(fpr, tpr, color=colors[mn], lw=lw, ls=ls, label=f"{mn} ({auc_v:.3f})", alpha=0.94)
+            row.append(f"{auc_v:.3f}")
         table_rows.append(row)
-        ax.plot([0,1],[0,1],"k--",lw=0.7,alpha=0.2); ax.set_xlim([0,1]); ax.set_ylim([0,1.02])
-        ax.set_xlabel("False Positive Rate",fontsize=9); ax.set_ylabel("True Positive Rate",fontsize=9)
-        title_col=PAL["blue"] if at=="sensor_freeze" else "#1A237E"
-        ax.set_title(at.replace("_"," ").title(),fontweight="bold",color=title_col,fontsize=10.5)
-        ax.legend(fontsize=6.8,loc="lower right")
+        ax.plot([0, 1], [0, 1], "k--", lw=0.7, alpha=0.2)
+        ax.set_xlim([0, 1]); ax.set_ylim([0, 1.02])
+        ax.set_xlabel("False Positive Rate", fontsize=9)
+        ax.set_ylabel("True Positive Rate", fontsize=9)
+        title_col = PAL["blue"] if at == "sensor_freeze" else "#1A237E"
+        ax.set_title(at.replace("_", " ").title(), fontweight="bold", color=title_col, fontsize=10.5)
+        ax.legend(fontsize=7.5, loc="lower right")
+
     flat[5].axis("off")
-    flat[5].text(0.5,0.56,"KEY RESULT\n\nSensor Freeze:\n  NLL ≈ 0.44  (sub-random)\n  URD ≈ 0.71  (+0.27)\n\nWhy NLL fails:\n  Frozen sensor → small residual\n  → scored as 'extra normal'\n\nWhy URD succeeds:\n  $S_t$ detects zero variance\n  via FDE + run-length",transform=flat[5].transAxes,ha="center",va="center",fontsize=10.5,fontweight="bold",color=PAL["blue"],bbox=dict(boxstyle="round,pad=0.65",facecolor="#E3F2FD",alpha=0.97,edgecolor=PAL["blue"],lw=1.5))
-    fig.suptitle("ROC Curves by Anomaly Type — 6 Detection Methods\nBold solid = D+FDE+Run (URD, ours)   |   Dashed = baselines   |   Diagonal = random chance",fontsize=13,fontweight="bold")
-    plt.tight_layout(); _save(fig,"fig4_roc_curves_by_type.png")
-    _csv_write(table_rows,["Anomaly Type"]+methods,"table1_anomaly_detection.csv")
+    flat[5].text(0.5, 0.56,
+                 "KEY RESULT\n\nURD baseline vs TranAD\nunder the same FD001 setup\n\nStrongest gap:\nSensor Freeze\nURD ≈ 0.823\nTranAD ≈ 0.462\n\nTranAD is competitive on\nordinary point anomalies,\nbut URD is far stronger on\nfreeze-like malfunctions",
+                 transform=flat[5].transAxes, ha="center", va="center", fontsize=10.5, fontweight="bold",
+                 color=PAL["blue"], bbox=dict(boxstyle="round,pad=0.65", facecolor="#E3F2FD", alpha=0.97,
+                 edgecolor=PAL["blue"], lw=1.5))
+    fig.suptitle("ROC Curves by Anomaly Type — URD Baseline vs TranAD\nSolid = URD baseline   |   Dashed = TranAD   |   Diagonal = random chance",
+                 fontsize=13, fontweight="bold")
+    plt.tight_layout(); _save(fig, "fig4_roc_curves_by_type.png")
+    _csv_write(table_rows, ["Anomaly Type"] + methods, "table1_anomaly_detection.csv")
 
-# ── FIG 5 — Signature Heatmap ─────────────────────────────────────────────
-def fig5_heatmap(model, urd, test_df, sensors, W):
-    from src.synthetic.anomaly_generator import AnomalyGenerator
+def fig5_case_timeline(model, urd, test_df, sensors, W, device="cpu"):
     _style()
-    gen=AnomalyGenerator(sensors,random_seed=42); sigs={t:{"D":[],"U":[],"S":[]} for t in ALL_TYPES}
-    for eid in sorted(test_df["unit_nr"].unique())[:12]:
-        ed=_ed(test_df,eid,sensors); base=ed["sensor_values"]; T=len(base)
-        if T<=W+40: continue
+    gen = AnomalyGenerator(sensors, random_seed=42)
+    eid = sorted(test_df["unit_nr"].unique())[0]
+    ed = _ed(test_df, eid, sensors)
+    traj = gen.create_injected_trajectory(ed, "sensor_freeze", injection_life_frac=0.5, magnitude=4.0, duration=20)
+    y, mu, sigma = _infer_gru(model, traj["sensor_values"] if isinstance(traj, dict) else traj.sensor_values, W, device)
+    if y is None:
+        return
+    values = traj["sensor_values"] if isinstance(traj, dict) else traj.sensor_values
+    labels = traj["labels"] if isinstance(traj, dict) else traj.labels
+    lf = traj["life_fracs"] if isinstance(traj, dict) else traj.life_fracs
+    res = urd.score(y, mu, sigma, normalize=True)
+    idx = sensors.index("s_4") if "s_4" in sensors else 0
+    lf_plot = lf[W:W + len(y)]
+    fig, axes = plt.subplots(3, 1, figsize=(12, 9), sharex=True)
+    axes[0].plot(lf_plot, y[:, idx], color=PAL["red"], label="True")
+    axes[0].plot(lf_plot, mu[:, idx], color=PAL["urd"], label="Predicted μ")
+    axes[0].fill_between(lf_plot, mu[:, idx] - 2 * sigma[:, idx], mu[:, idx] + 2 * sigma[:, idx], color=PAL["urd"], alpha=0.15, label="μ ± 2σ")
+    axes[0].set_ylabel(sensors[idx])
+    axes[0].legend(loc="upper left")
+    axes[0].set_title("Case study — injected sensor freeze with GRU prediction band", fontweight="bold")
+
+    axes[1].plot(lf_plot, res["combined"], color=PAL["purple"], label="URD score")
+    axes[1].plot(lf_plot, (labels[W:W + len(y)] > 0).astype(int), color="#455A64", alpha=0.4, label="Anomaly label")
+    axes[1].set_ylabel("score")
+    axes[1].legend(loc="upper left")
+
+    axes[2].plot(lf_plot, res["deviation"], color=PAL["red"], label="D")
+    axes[2].plot(lf_plot, res["uncertainty"], color=PAL["green"], label="U")
+    axes[2].plot(lf_plot, res["stationarity"], color=PAL["urd"], label="S")
+    axes[2].set_xlabel("Life Fraction")
+    axes[2].set_ylabel("channel value")
+    axes[2].legend(loc="upper left")
+    fig.suptitle("Raw signal, probabilistic prediction, and URD channels on one failure case", fontweight="bold")
+    _save(fig, "fig5_case_timeline_freeze.png")
+
+
+def fig6_dus_distributions(model, urd, test_df, sensors, W, device="cpu"):
+    _style()
+    gen = AnomalyGenerator(sensors, random_seed=42)
+    vals = {cat: {"D": [], "U": [], "S": []} for cat in sorted(set(CATEGORY_MAP.values()))}
+    for eid in sorted(test_df["unit_nr"].unique())[:10]:
+        ed = _ed(test_df, eid, sensors)
+        base = ed["sensor_values"]
+        T = len(base)
+        if T <= W + 40:
+            continue
         for at in ANOM_TYPES:
-            try:
-                traj=gen.create_injected_trajectory(ed,at,0.5,4.0,15)
-                y,mu,sg=_infer(model,traj.sensor_values,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,T//2-W); ee=min(len(res["deviation"]),es+25)
-                if ee>es:
-                    sigs[at]["D"].append(float(np.clip(res["deviation"][es:ee],0,None).mean()))
-                    sigs[at]["U"].append(float(res["uncertainty"][es:ee].mean()))
-                    sigs[at]["S"].append(float(np.clip(res["stationarity"][es:ee],0,None).mean()))
-            except Exception: continue
+            traj = gen.create_injected_trajectory(ed, at, 0.5, 4.0, 15)
+            y, mu, sigma = _infer_gru(model, traj.sensor_values, W, device)
+            if y is None:
+                continue
+            res = urd.score(y, mu, sigma, normalize=True)
+            mask = traj.labels[W:W + len(y)] > 0
+            if mask.sum() == 0:
+                continue
+            cat = CATEGORY_MAP[at]
+            vals[cat]["D"].append(float(np.mean(res["deviation"][mask])))
+            vals[cat]["U"].append(float(np.mean(res["uncertainty"][mask])))
+            vals[cat]["S"].append(float(np.mean(res["stationarity"][mask])))
         for dt in DRIFT_TYPES:
-            try:
-                dv,ds=_inject_drift(base,dt,T); y,mu,sg=_infer(model,dv,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,ds-W); ee=len(res["deviation"])
-                if ee-es>8:
-                    sigs[dt]["D"].append(float(np.clip(res["deviation"][es:ee],0,None).mean()))
-                    sigs[dt]["U"].append(float(res["uncertainty"][es:ee].mean()))
-                    sigs[dt]["S"].append(float(np.clip(res["stationarity"][es:ee],0,None).mean()))
-            except Exception: continue
-    hmap=np.zeros((len(ALL_TYPES),3))
-    for i,at in enumerate(ALL_TYPES):
-        for j,ch in enumerate(["D","U","S"]): hmap[i,j]=float(np.mean(sigs[at][ch])) if sigs[at][ch] else 0.0
-    for j in range(3):
-        mx=hmap[:,j].max()
-        if mx>0: hmap[:,j]/=mx
-    cmap=LinearSegmentedColormap.from_list("urd",["#F8F9FA","#BBDEFB","#1565C0"])
-    fig,ax=plt.subplots(figsize=(8,10.5)); im=ax.imshow(hmap,cmap=cmap,aspect="auto",vmin=0,vmax=1)
-    ax.set_xticks([0,1,2]); ax.set_xticklabels(["Deviation  D","Uncertainty  U","Stationarity  S"],fontweight="bold",fontsize=12.5)
-    ax.set_yticks(range(len(ALL_TYPES))); ax.set_yticklabels([t.replace("_"," ").title() for t in ALL_TYPES],fontsize=11,fontweight="bold")
-    for i in range(len(ALL_TYPES)):
-        for j in range(3):
-            clr="white" if hmap[i,j]>0.55 else "#1A237E"
-            ax.text(j,i,f"{hmap[i,j]:.2f}",ha="center",va="center",color=clr,fontsize=11,fontweight="bold")
-    ax.axhline(len(ANOM_TYPES)-0.5,color="white",lw=3.5)
-    plt.colorbar(im,ax=ax,label="Relative channel activation (column-normalised)",shrink=0.6,pad=0.02)
-    ax.set_title("URD Anomaly Signature Profiles\nEach event type has a distinct (D, U, S) fingerprint",fontweight="bold",fontsize=12.5,pad=12)
-    plt.tight_layout(); _save(fig,"fig5_signature_heatmap.png")
+            dv, ds = _inject_drift(base, dt, T)
+            y, mu, sigma = _infer_gru(model, dv, W, device)
+            if y is None:
+                continue
+            res = urd.score(y, mu, sigma, normalize=True)
+            mask = np.zeros(len(y), dtype=bool)
+            start = max(0, ds - W)
+            mask[start:] = True
+            vals["drift"]["D"].append(float(np.mean(res["deviation"][mask])))
+            vals["drift"]["U"].append(float(np.mean(res["uncertainty"][mask])))
+            vals["drift"]["S"].append(float(np.mean(res["stationarity"][mask])))
+    cats = list(vals.keys())
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8), sharey=False)
+    for ax, ch in zip(axes, ["D", "U", "S"]):
+        data = [vals[c][ch] for c in cats]
+        ax.boxplot(data, tick_labels=[c.replace("_", " ") for c in cats], showfliers=False)
+        ax.set_title(f"{ch} by category", fontweight="bold")
+        ax.tick_params(axis="x", rotation=20)
+    fig.suptitle("URD channel distributions by anomaly category", fontweight="bold")
+    _save(fig, "fig6_dus_distributions.png")
 
-# ── FIG 6 + TABLE 2 — Feature Importance ─────────────────────────────────
-def fig6_feature_importance_table2(model, urd, nll_sc, test_df, sensors, W):
-    from src.synthetic.anomaly_generator import AnomalyGenerator
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import train_test_split
+
+def fig7_feature_importance(stage_d):
     _style()
-    gen=AnomalyGenerator(sensors,random_seed=42)
-    FEAT_NAMES=["max_score","mean_score","score_slope","score_curvature","score_volatility","duration","sensor_conc","n_sensors_flagged","max_single_sensor","D_at_peak","U_at_peak","S_at_peak","U_slope","S_max","D/U_ratio","signed_dev"]
-    URD_SET={"D_at_peak","U_at_peak","S_at_peak","U_slope","S_max","D/U_ratio","signed_dev"}
-    X_all,y_all=[],[]
-    for eid in sorted(test_df["unit_nr"].unique())[:12]:
-        ed=_ed(test_df,eid,sensors); base=ed["sensor_values"]; T=len(base)
-        if T<=W+40: continue
-        for at in ANOM_TYPES:
-            try:
-                traj=gen.create_injected_trajectory(ed,at,0.5,4.0,15); y,mu,sg=_infer(model,traj.sensor_values,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,T//2-W); ee=min(len(res["deviation"]),es+25)
-                if ee-es<4: continue
-                d=np.clip(res["deviation"][es:ee],0,None); u=res["uncertainty"][es:ee]; s=np.clip(res["stationarity"][es:ee],0,None)
-                ta=np.arange(len(d),dtype=float)
-                sl=float(np.polyfit(ta,d,1)[0]) if len(d)>1 else 0.0
-                su=float(np.polyfit(ta,u,1)[0]) if len(u)>1 else 0.0
-                ac=float(np.polyfit(ta,d,2)[0]) if len(d)>2 else 0.0
-                sd=float(np.mean(res["signed_residuals"][es:ee]))
-                X_all.append([d.max(),d.mean(),sl,ac,d.std(),float(len(d)),0.5,1.0,d.max(),float(d.mean()),float(u.mean()),float(s.mean()),su,float(s.max()),float(d.mean()/max(u.mean(),0.01)),sd])
-                y_all.append(0)
-            except Exception: continue
-        for dt in DRIFT_TYPES:
-            try:
-                dv,ds=_inject_drift(base,dt,T); y,mu,sg=_infer(model,dv,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,ds-W); ee=len(res["deviation"])
-                if ee-es<6: continue
-                d=np.clip(res["deviation"][es:ee],0,None); u=res["uncertainty"][es:ee]; s=np.clip(res["stationarity"][es:ee],0,None)
-                ta=np.arange(len(d),dtype=float)
-                sl=float(np.polyfit(ta,d,1)[0]) if len(d)>1 else 0.0
-                su=float(np.polyfit(ta,u,1)[0]) if len(u)>1 else 0.0
-                ac=float(np.polyfit(ta,d,2)[0]) if len(d)>2 else 0.0
-                X_all.append([d.max(),d.mean(),sl,ac,d.std(),float(len(d)),0.35,2.0,d.max()*0.6,float(d.mean()),float(u.mean()),float(s.mean()),su,float(s.max()),float(d.mean()/max(u.mean(),0.01)),0.0])
-                y_all.append(1)
-            except Exception: continue
-    if len(X_all)<20: print("  skipped fig6/table2 — not enough events"); return
-    X=np.array(X_all); y=np.array(y_all)
-    X_tr,X_te,y_tr,y_te=train_test_split(X,y,test_size=0.3,random_state=42,stratify=y)
-    rf=RandomForestClassifier(n_estimators=300,max_depth=8,class_weight="balanced",random_state=42)
-    rf.fit(X_tr,y_tr); imp=rf.feature_importances_; idx=np.argsort(imp)
-    bar_cols=[PAL["blue"] if FEAT_NAMES[i] in URD_SET else PAL["gray"] for i in idx]
-    fig,ax=plt.subplots(figsize=(10.5,7.5))
-    bars=ax.barh(range(len(idx)),imp[idx],color=bar_cols,edgecolor="white",height=0.72)
-    ax.set_yticks(range(len(idx))); ax.set_yticklabels([FEAT_NAMES[i] for i in idx],fontsize=10.5)
-    ax.set_xlabel("Feature Importance (Gini impurity reduction)",fontweight="bold",fontsize=11)
-    ax.set_title("Random Forest Feature Importances — Drift vs Anomaly Classification\nBlue = URD channel features (D, U, S)   |   Gray = standard score-shape features",fontweight="bold",fontsize=12)
-    for bar,i in zip(bars,idx): ax.text(bar.get_width()+0.002,bar.get_y()+bar.get_height()/2,f"{imp[i]:.3f}",va="center",fontsize=8.5,color="#37474F")
-    patches=[mpatches.Patch(color=PAL["blue"],label="URD channel features (D, U, S)"),mpatches.Patch(color=PAL["gray"],label="Standard score-shape features")]
-    ax.legend(handles=patches,loc="lower right",fontsize=10.5); plt.tight_layout(); _save(fig,"fig6_feature_importance.png")
-    table2_rows=[]
-    for feat_end,feat_name in [(9,"9-feat (no URD)"),(12,"12-feat (+prob)"),(16,"16-feat URD")]:
-        for clf_name,clf in [("LR",LogisticRegression(max_iter=500,class_weight="balanced",random_state=42)),("RF",RandomForestClassifier(n_estimators=200,class_weight="balanced",random_state=42))]:
-            fe=min(feat_end,X_tr.shape[1])
-            try:
-                clf.fit(X_tr[:,:fe],y_tr); preds=clf.predict(X_te[:,:fe]); acc=float(np.mean(preds==y_te))
-                dm=y_te==1; am=y_te==0
-                d2a=float(np.mean(preds[dm]==0)) if dm.sum()>0 else float("nan")
-                a2d=float(np.mean(preds[am]==1)) if am.sum()>0 else float("nan")
-                table2_rows.append([feat_name,clf_name,f"{acc:.3f}",f"{d2a:.3f}",f"{a2d:.3f}"])
-            except Exception: pass
-    _csv_write(table2_rows,["Features","Classifier","Accuracy","Drift->Anom","Anom->Drift"],"table2_drift_ablation.csv")
+    imp = stage_d["xgboost_URD_16feat"]["feature_importance"]
+    items = sorted(imp.items(), key=lambda kv: kv[1])
+    names = [k for k, _ in items]
+    vals = [v for _, v in items]
+    fig, ax = plt.subplots(figsize=(9.5, 7))
+    ax.barh(range(len(names)), vals, color=PAL["urd"])
+    ax.set_yticks(range(len(names)))
+    ax.set_yticklabels(names)
+    ax.set_xlabel("Importance")
+    ax.set_title("Drift-vs-anomaly feature importance (XGBoost, URD 16 features)", fontweight="bold")
+    _save(fig, "fig7_feature_importance.png")
 
-# ── FIG 7 — Prediction Bands ──────────────────────────────────────────────
-def fig7_prediction_bands(model, test_df, sensors, W):
+
+def fig8_calibration(model, urd, val_df, sensors, W, device="cpu"):
     _style()
-    for eid in sorted(test_df["unit_nr"].unique()):
-        ed=_ed(test_df,eid,sensors); vals=ed["sensor_values"]; lf=ed["life_fracs"]; T=len(vals)
-        if T<120: continue
-        y,mu,sg=_infer(model,vals,W)
-        if y is None: continue
-        lf_p=lf[W:W+len(y)]; d=len(sensors); show=[0,1,d-2,d-1]
-        fig,axes=plt.subplots(len(show),1,figsize=(12,3.2*len(show)),sharex=True)
-        if len(show)==1: axes=[axes]
-        for k,si in enumerate(show):
-            ax=axes[k]
-            ax.fill_between(lf_p,mu[:,si]-2*sg[:,si],mu[:,si]+2*sg[:,si],alpha=0.13,color=PAL["blue"])
-            ax.fill_between(lf_p,mu[:,si]-sg[:,si],mu[:,si]+sg[:,si],alpha=0.27,color=PAL["blue"])
-            ax.plot(lf_p,y[:,si],color=PAL["red"],lw=0.95,alpha=0.85,label="True value")
-            ax.plot(lf_p,mu[:,si],color=PAL["blue"],lw=1.3,label="Pred μ")
-            ax.set_ylabel(sensors[si],fontweight="bold",fontsize=10.5)
-            ax.axvline(0.5,color=PAL["gray"],ls="--",lw=1.0,alpha=0.55)
-            if k==0:
-                handles=[mpatches.Patch(color=PAL["blue"],alpha=0.27,label="μ ± σ"),mpatches.Patch(color=PAL["blue"],alpha=0.13,label="μ ± 2σ"),plt.Line2D([0],[0],color=PAL["red"],lw=1.2,label="True value"),plt.Line2D([0],[0],color=PAL["blue"],lw=1.2,label="Pred μ"),plt.Line2D([0],[0],color=PAL["gray"],lw=1,ls="--",label="50% life")]
-                ax.legend(handles=handles,ncol=5,fontsize=8.5,loc="upper left")
-                ax.text(0.25,1.04,"← Training region (life ≤ 0.5)",transform=ax.transAxes,fontsize=9,color=PAL["green"],ha="center",fontweight="bold")
-                ax.text(0.75,1.04,"Unseen degradation →",transform=ax.transAxes,fontsize=9,color=PAL["red"],ha="center",fontweight="bold")
-        axes[-1].set_xlabel("Life Fraction",fontweight="bold",fontsize=11)
-        fig.suptitle(f"Gaussian GRU — Probabilistic Predictions with Uncertainty Bands  (Engine #{eid})\n"+r"$(\mu_t,\sigma_t)=f_\theta(\mathbf{x}_{t-30:t})$"+"  trained with NLL loss  |  σ grows as engine degrades",fontsize=12,fontweight="bold")
-        plt.tight_layout(); _save(fig,"fig7_prediction_bands.png"); break
+    rs = []
+    for eid in sorted(val_df["unit_nr"].unique()):
+        vals = val_df[val_df["unit_nr"] == eid].sort_values("time_cycles")[sensors].values
+        y, mu, sigma = _infer_gru(model, vals, W, device)
+        if y is None:
+            continue
+        sigma_eff = sigma * urd.sigma_temp[np.newaxis, :]
+        rs.append(((y - mu) / sigma_eff).reshape(-1))
+    residuals = np.concatenate(rs)
+    z_grid = np.array([0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+    empirical = [float(np.mean(np.abs(residuals) <= z)) for z in z_grid]
+    import math
+    theoretical = [float(math.erf(z / np.sqrt(2.0))) for z in z_grid]
 
-# ── TABLE 3 — Fingerprint ─────────────────────────────────────────────────
-def table3_fingerprint(model, urd, test_df, sensors, W):
-    from src.synthetic.anomaly_generator import AnomalyGenerator
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report
-    gen=AnomalyGenerator(sensors,random_seed=42); X_all,y_all=[],[]
-    for eid in sorted(test_df["unit_nr"].unique())[:14]:
-        ed=_ed(test_df,eid,sensors); base=ed["sensor_values"]; T=len(base)
-        if T<=W+40: continue
-        for fi,at in enumerate(ANOM_TYPES):
-            try:
-                traj=gen.create_injected_trajectory(ed,at,0.5,4.0,15); y,mu,sg=_infer(model,traj.sensor_values,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,T//2-W); ee=min(len(res["deviation"]),es+25)
-                if ee-es<4: continue
-                d=np.clip(res["deviation"][es:ee],0,None); u=res["uncertainty"][es:ee]; s=np.clip(res["stationarity"][es:ee],0,None)
-                X_all.append([d.max(),d.mean(),u.mean(),s.mean(),s.max(),float(d.mean()/max(u.mean(),0.01)),float(np.mean(res["signed_residuals"][es:ee]))])
-                y_all.append(fi)
-            except Exception: continue
-        for fi,dt in enumerate(DRIFT_TYPES):
-            try:
-                dv,ds=_inject_drift(base,dt,T); y,mu,sg=_infer(model,dv,W)
-                if y is None: continue
-                res=urd.score(y,mu,sg); es=max(0,ds-W); ee=len(res["deviation"])
-                if ee-es<6: continue
-                d=np.clip(res["deviation"][es:ee],0,None); u=res["uncertainty"][es:ee]; s=np.clip(res["stationarity"][es:ee],0,None)
-                X_all.append([d.max(),d.mean(),u.mean(),s.mean(),s.max(),float(d.mean()/max(u.mean(),0.01)),0.0])
-                y_all.append(5+fi)
-            except Exception: continue
-    if len(X_all)<20: print("  skipped table3 — not enough data"); return
-    X=np.array(X_all); y=np.array(y_all)
-    X_tr,X_te,y_tr,y_te=train_test_split(X,y,test_size=0.3,random_state=42)
-    clf=RandomForestClassifier(n_estimators=300,class_weight="balanced",random_state=42)
-    clf.fit(X_tr,y_tr); preds=clf.predict(X_te)
-    names=[t.replace("_"," ").title() for t in ALL_TYPES]; present=sorted(np.unique(y))
-    rep=classification_report(y_te,preds,labels=present,target_names=[names[i] for i in present],output_dict=True)
-    rows=[]
-    for i in present:
-        nm=names[i]; r=rep.get(nm,{})
-        rows.append([nm,f"{r.get('precision',0):.3f}",f"{r.get('recall',0):.3f}",f"{r.get('f1-score',0):.3f}",int(r.get('support',0))])
-    rows.append(["OVERALL ACCURACY",f"{rep.get('accuracy',0):.3f}","","",""])
-    _csv_write(rows,["Type","Precision","Recall","F1","Support"],"table3_fingerprint.csv")
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    axes[0].plot(z_grid, empirical, marker="o", color=PAL["urd"], label="Empirical")
+    axes[0].plot(z_grid, theoretical, marker="s", color=PAL["gray"], label="Gaussian ideal")
+    axes[0].set_xlabel("z in μ ± zσ")
+    axes[0].set_ylabel("Coverage")
+    axes[0].set_title("Coverage calibration", fontweight="bold")
+    axes[0].legend()
 
-# ── TABLE 4 — Model Comparison ────────────────────────────────────────────
-def table4_model_comparison():
-    rows=[["Gaussian GRU ★ (primary)","0.361","0.466","0.7212","42","~28s","NLL"],["Gaussian LSTM","0.471","0.518","0.7211","49","~34s","NLL"],["Deterministic GRU","0.367","0.469","—","31","~16s","MSE"],["Deterministic LSTM","0.443","0.506","—","58","~32s","MSE"],["Ridge Regression","0.350","0.461","—","—","<1s","MSE"],["Naive Persistence","0.541","0.570","—","—","—","—"]]
-    _csv_write(rows,["Model","Test MSE","Test MAE","Best Val NLL","Epochs","Train Time","Loss"],"table4_model_comparison.csv")
+    axes[1].hist(residuals, bins=40, density=True, color=PAL["urd"], alpha=0.7)
+    x = np.linspace(-4, 4, 400)
+    pdf = (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * x ** 2)
+    axes[1].plot(x, pdf, color=PAL["red"], label="N(0,1)")
+    axes[1].set_title(f"Normalized residuals\nmean={residuals.mean():.3f}, std={residuals.std():.3f}", fontweight="bold")
+    axes[1].legend()
+    fig.suptitle("Probabilistic calibration of the URD backbone", fontweight="bold")
+    _save(fig, "fig8_probabilistic_calibration.png")
 
-# ── MAIN ──────────────────────────────────────────────────────────────────
+
+def copy_optional_figure(src_name, dst_name):
+    src = os.path.join(ROOT, "outputs", "figures", src_name)
+    dst = os.path.join(PAPER, dst_name)
+    if os.path.exists(src):
+        shutil.copy2(src, dst)
+        print(f"  copied {dst_name}")
+
+
+def table1_anomaly_detection(stage_c):
+    rows = []
+    all_types = sorted(stage_c["urd"]["per_type"].keys())
+    for t in all_types:
+        rows.append([
+            t,
+            stage_c["urd"]["per_type"][t]["roc_auc"],
+            stage_c["urd"]["per_type"][t]["pr_auc"],
+            stage_c["tranad"]["per_type"][t]["roc_auc"],
+            stage_c["tranad"]["per_type"][t]["pr_auc"],
+        ])
+    rows.append(["OVERALL", stage_c["urd"]["overall"]["roc_auc"], stage_c["urd"]["overall"]["pr_auc"], stage_c["tranad"]["overall"]["roc_auc"], stage_c["tranad"]["overall"]["pr_auc"]])
+    _csv_write(rows, ["type", "urd_roc", "urd_pr", "tranad_roc", "tranad_pr"], "table1_anomaly_detection.csv")
+
+
+def table2_drift_ablation(stage_d):
+    rows = []
+    for name, data in stage_d.items():
+        rows.append([name, data["accuracy"], data["drift_as_anomaly_rate"], data["anomaly_as_drift_rate"]])
+    _csv_write(rows, ["model", "accuracy", "drift_as_anomaly_rate", "anomaly_as_drift_rate"], "table2_drift_ablation.csv")
+
+
+def table3_fingerprint(stage_e):
+    rows = []
+    rep = stage_e["five_class"]["report"]
+    for cls in ["drift", "noise_anomaly", "persistent_shift", "point_anomaly", "sensor_malfunction"]:
+        if cls in rep:
+            rows.append([cls, rep[cls]["precision"], rep[cls]["recall"], rep[cls]["f1-score"], rep[cls]["support"]])
+    rows.append(["accuracy", stage_e["five_class"]["accuracy"], "", "", ""])
+    _csv_write(rows, ["class", "precision", "recall", "f1", "support"], "table3_fingerprint.csv")
+
+
+def table4_model_comparison(stage_a):
+    rows = []
+    wanted = ["gaussian_gru", "tranad", "gaussian_lstm", "deterministic_gru", "deterministic_lstm", "ridge", "naive"]
+    for k in wanted:
+        if k not in stage_a["eval_results"]:
+            continue
+        res = stage_a["eval_results"][k]
+        rows.append([k, res.get("mse", ""), res.get("mae", ""), res.get("mean_sigma", "")])
+    _csv_write(rows, ["model", "test_mse", "test_mae", "mean_sigma"], "table4_model_comparison.csv")
+
+
 def main():
-    print("="*65); print("  PAPER OUTPUT GENERATOR  →  outputs/for_paper/"); print("="*65)
-    _style(); cfg=_cfg(); W=cfg["preprocessing"]["window_size"]
-    print("\n[Phase 1 — no data needed]")
-    fig1_pipeline(); table4_model_comparison()
-    print("\n[Phase 2 — loading data and Gaussian GRU checkpoint]")
-    try: splits,sensors=_load_data(cfg)
-    except Exception as e: print(f"  ERROR loading data: {e}"); return
-    try: model=_load_gru(cfg)
-    except FileNotFoundError as e: print(f"  ERROR — run 01_train_baselines.py first: {e}"); return
-    print("[Phase 3 — fitting URD + NLL scorers on normal validation data]")
-    urd=_fit_urd(model,splits["val"],sensors,W); nll_sc=_fit_nll(model,splits["val"],sensors,W)
-    print("[Phase 4 — generating all figures and tables]")
-    fig7_prediction_bands(model,splits["test"],sensors,W)
-    fig2_urd_channels(model,urd,splits["test"],sensors,W)
-    fig3_sensor_freeze(model,urd,nll_sc,splits["test"],sensors,W)
-    fig4_roc_table1(model,urd,nll_sc,splits["test"],sensors,W)
-    fig5_heatmap(model,urd,splits["test"],sensors,W)
-    fig6_feature_importance_table2(model,urd,nll_sc,splits["test"],sensors,W)
-    table3_fingerprint(model,urd,splits["test"],sensors,W)
-    print("\n"+"="*65); print(f"  Done.  All outputs → {PAPER}"); print("="*65)
+    _style()
+    cfg = _cfg()
+    stage_c_path = os.path.join(ROOT, "outputs", "results", "stage_c_results.json")
+    stage_d_path = os.path.join(ROOT, "outputs", "results", "stage_d_results.json")
+    stage_e_path = os.path.join(ROOT, "outputs", "results", "stage_e_results.json")
+    stage_a_path = os.path.join(ROOT, "outputs", "results", "stage_a_results.json")
+    sweep_csv = os.path.join(ROOT, "outputs", "results", "stage_c_threshold_sweep.csv")
+    for pth in [stage_c_path, stage_d_path, stage_e_path, stage_a_path, sweep_csv]:
+        if not os.path.exists(pth):
+            raise FileNotFoundError(f"Required input missing: {pth}. Run the earlier experiment stages first.")
 
-if __name__=="__main__": main()
+    stage_c = _load_json(stage_c_path)
+    stage_d = _load_json(stage_d_path)
+    stage_e = _load_json(stage_e_path)
+    stage_a = _load_json(stage_a_path)
+
+    splits, sensors = _load_data(cfg)
+    W = cfg["preprocessing"]["window_size"]
+    model = _load_gru(cfg)
+    tranad_model = _load_tranad(cfg)
+    urd = _fit_urd(model, splits["val"], sensors, W)
+
+    print("=" * 70)
+    print("Generating updated paper outputs")
+    print("=" * 70)
+    fig1_pipeline_overview()
+    fig2_roc_pr_compare(stage_c)
+    fig3_threshold_sweep(sweep_csv)
+    fig4_roc_curves_by_type(cfg, splits, sensors, W, model, urd, tranad_model)
+    fig5_case_timeline(model, urd, splits["test"], sensors, W)
+    fig6_dus_distributions(model, urd, splits["test"], sensors, W)
+    fig7_feature_importance(stage_d)
+    fig8_calibration(model, urd, splits["val"], sensors, W)
+    copy_optional_figure("fingerprint_5class_cm.png", "fig9_fingerprint_5class_confusion.png")
+    copy_optional_figure("feature_importance_xgboost.png", "fig10_stage_d_feature_importance.png")
+
+    table1_anomaly_detection(stage_c)
+    table2_drift_ablation(stage_d)
+    table3_fingerprint(stage_e)
+    table4_model_comparison(stage_a)
+    print(f"\nDone. Outputs written to {PAPER}")
+
+
+if __name__ == "__main__":
+    main()

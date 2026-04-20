@@ -519,11 +519,11 @@ where γ = 2.0.
 
 When FDE_score ≈ 0 (normal data), S_run bonus is multiplied by 0 contribution
 from FDE context. In our additive formula: if FDE_score = 0, then:
-S_t = 0 + γ × max(0, run-2)
+S_t = 0 + 3 × max(0, run-1)
 
 Wait — that means run-length CAN fire independently. But in practice:
 - Under normal conditions, run_length is almost always 0 (no consecutive identical values)
-- The γ × max(0, run-2) term only fires after 3+ identical consecutive readings
+- The 3 × max(0, run-1) term fires after 2+ nearly identical consecutive readings
 - Probability of 3 normal readings being identical within δ = 10⁻⁴: essentially 0
 
 The key protection is that the **threshold is run > 2** (not 0). Under normal conditions
@@ -642,7 +642,7 @@ This single number captures whether the model was "surprised" (anomaly) or "prep
 |----------|-----------------|-------------------|
 | 9-feat (no URD) | 88.8% | 11.5% |
 | 12-feat (+prob) | 91.5% | 7.4% |
-| **16-feat URD** | **94.1%** | **6.1%** |
+| **16-feat URD** | **95.3%** | **4.0%** |
 
 URD features add +5.3 percentage points vs no-URD baseline.
 
@@ -672,7 +672,7 @@ signed_deviation_mean = (1/d) Σⱼ r_{t,j}   (signed, not |r|)
 ```
 Positive for spikes (residuals positive). Negative for drops.
 
-With this feature: spike vs drop accuracy = **95.0%**
+With this feature: spike vs drop accuracy = **96.7%**
 Without: 58.3%
 Improvement: **+36.7 percentage points** from one feature.
 
@@ -685,7 +685,7 @@ Improvement: **+36.7 percentage points** from one feature.
 | persistent_shift | 0.859 | 0.917 | 0.887 |
 | point_anomaly | 0.885 | 0.900 | 0.893 |
 | sensor_malfunction | 0.946 | 0.883 | **0.914** |
-| **5-class accuracy** | | | **91.9%** |
+| **5-class accuracy** | | | **90.2%** |
 
 Sensor malfunction — completely invisible to NLL — achieved F1 = 0.914.
 
@@ -720,21 +720,21 @@ STEP 5  URD Scoring (using gaussian_gru_best.pt)
   → r_{t,j} = (x_{t,j}-μ_{t,j})/σ_{t,j}  ~ N(0,1) under normal
   → D_t = (1/d)Σr²  (chi-squared deviation)
   → U_t = (1/d)Σσ/σ_ref  (uncertainty ratio)
-  → S_t = FDE(t) + γ·max(0,run-2)  (stationarity — novel)
+  → S_t = FDE(t) + 3·max(0,run-1)  (tuned stationarity)
   → combined = max(D_norm, S_norm)
 
 STEP 6  Classification (Stage D)
   → 16 features from (D,U,S) per event
-  → RF/LR → "anomaly" or "drift"   (94.1% accuracy)
+  → XGBoost/RF/LR → "anomaly" or "drift"   (95.3% best accuracy)
 
 STEP 7  Fingerprinting (Stage E)
-  → Same 16 features → 5-class RF → specific type
+  → Same 16 features → 5-class RF → specific type (90.2% accuracy)
   → "sensor_malfunction: freeze on s_4" → replace sensor
   → "drift: gradual_shift"            → schedule maintenance
 
 STEP 8  Paper Outputs
   → python -m experiments.05_generate_paper_outputs
-  → outputs/for_paper/ (7 figures + 4 tables)
+  → outputs/for_paper/ (updated paper pack incl. TranAD comparison, calibration, and confusion plots)
 ```
 
 ---
@@ -745,12 +745,13 @@ STEP 8  Paper Outputs
 
 | Method | Overall ROC-AUC | Sensor Freeze ROC-AUC |
 |--------|------------------|-----------------------|
-| NLL baseline | 0.721 | 0.436 (sub-random!) |
-| MSE | 0.714 | 0.448 |
-| Isolation Forest | 0.695 | 0.521 |
-| OC-SVM | 0.612 | 0.493 |
-| **D+FDE+Run (URD)** | **0.807** | **0.713** |
-| Improvement vs NLL | +0.086 | **+0.277** |
+| NLL baseline | 0.7477 | 0.4398 (sub-random) |
+| D+Conformity | 0.7662 | 0.5034 |
+| D+Variance | 0.7849 | 0.5635 |
+| D+FDE | 0.8240 | 0.6851 |
+| **URD (baseline)** | **0.8636** | **0.8230** |
+| TranAD baseline | produced by Stage C on the same split | compare directly in outputs/for_paper figures |
+| Improvement vs NLL | **+0.1159** | **+0.3832** |
 
 ### Stage D — Drift Classification
 
@@ -758,15 +759,15 @@ STEP 8  Paper Outputs
 |---|---|---|---|
 | 9-feat, no prob | 88.8% | 11.5% | 10.9% |
 | 12-feat, orig | 91.5% | 7.4% | 9.6% |
-| **16-feat URD, XGBoost** | **94.1%** | **6.1%** | **5.7%** |
+| **16-feat URD, XGBoost** | **95.3%** | **4.0%** | **5.4%** |
 
 ### Stage E — Fingerprinting
 
 | Experiment | Accuracy |
 |---|---|
-| 5-class actionable | **91.9%** |
+| 5-class actionable | **90.2%** |
 | 9-class per-type | 62.7% |
-| Spike vs Drop (with signed_dev) | **95.0%** |
+| Spike vs Drop (with signed_dev) | **96.7%** |
 | Spike vs Drop (without) | 58.3% |
 
 ---
@@ -775,12 +776,12 @@ STEP 8  Paper Outputs
 
 ### Contribution 1: Bidirectional Detection (Stationarity Channel)
 
-**What:** S_t = FDE(t) + γ·max(0, run-2) on RAW sensor values.
+**What:** the deployed baseline uses calibrated Mahalanobis D together with S_t = FDE(t) + 3·max(0, run-1) on raw sensor values, fused as 0.35·D + 0.65·S.
 Detects variance collapse (frozen/stuck sensors).
 
 **Why it is new:** All published methods use one-directional scoring (too-large residuals).
 No paper uses FDE + run-length on raw values for stationarity detection.
-We lift sensor freeze ROC-AUC from 0.436 to 0.713 (+0.277).
+We lift sensor freeze ROC-AUC from 0.4398 to 0.8230 (+0.3832).
 
 **Why probabilistic model is required:**
 σ_ref calibrates the FDE reference. The normalisation depends on "what is normal variance"
@@ -788,7 +789,7 @@ which requires a calibrated uncertainty model.
 
 ### Contribution 2: URD-Based Drift Classification
 
-**What:** 16-dimensional (D, U, S) feature vector enables 94.1% drift/anomaly accuracy.
+**What:** 16-dimensional (D, U, S) feature vector enables 95.3% drift/anomaly accuracy with XGBoost.
 D/U ratio captures "model surprise" — the defining distinction.
 
 **Why it is new:** Existing drift detectors (ADWIN, DDM) work on 1D streams.
@@ -796,7 +797,7 @@ No existing method provides multi-dimensional anomaly characterisation in a unif
 
 ### Contribution 3: Anomaly Fingerprinting
 
-**What:** (D, U, S) signature profile → 5-class actionable taxonomy → 91.9% accuracy.
+**What:** (D, U, S) signature profile → 5-class actionable taxonomy → 90.2% accuracy.
 Not just "something is wrong" but "this is a sensor freeze → replace sensor."
 
 **Why it is new:** All existing anomaly detection is binary detection.
@@ -876,7 +877,7 @@ AUC (Area Under Curve):
 - < 0.5: worse than random (classifier is backwards)
 
 NLL-only sensor freeze: 0.436 (actively anti-correlated).
-URD stationarity: 0.713 (correct).
+URD baseline: 0.823 (correct).
 
 ### A.9 Gini Coefficient
 

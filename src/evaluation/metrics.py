@@ -217,12 +217,16 @@ def event_level_metrics(y_true: np.ndarray, scores: np.ndarray, threshold: float
                 break
 
     event_precision = true_positive_alarms / n_pred_events if n_pred_events > 0 else 0.0
+    event_f1 = 0.0
+    if event_precision + event_recall > 0:
+        event_f1 = 2.0 * event_precision * event_recall / (event_precision + event_recall)
 
     return {
         "event_recall": float(event_recall),
         "mean_detection_delay": mean_delay,
         "median_detection_delay": median_delay,
         "event_precision": float(event_precision),
+        "event_f1": float(event_f1),
         "n_true_events": n_true_events,
         "n_detected_events": detected,
         "n_alarm_events": n_pred_events}
@@ -274,3 +278,34 @@ def full_evaluation(y_true: np.ndarray, scores: np.ndarray, thresholds: Dict[flo
             results["per_threshold"][key]["false_positive_rate"] = false_positive_rate(clean_scores, thr)
 
     return results
+
+
+def false_alarms_per_1000(y_true: np.ndarray, scores: np.ndarray, threshold: float) -> float:
+    """False positive windows per 1000 truly normal windows."""
+    y_true = np.asarray(y_true)
+    scores = np.asarray(scores)
+    normal_mask = y_true == 0
+    if normal_mask.sum() == 0:
+        return float("nan")
+    fp = int(np.sum((scores >= threshold) & normal_mask))
+    return float(1000.0 * fp / normal_mask.sum())
+
+
+def threshold_sweep_metrics(y_true: np.ndarray, scores: np.ndarray, thresholds: np.ndarray) -> List[Dict[str, float]]:
+    """Compute precision/recall/F1 across a supplied threshold grid."""
+    out = []
+    for thr in thresholds:
+        pm = point_level_metrics(y_true, scores, float(thr))
+        em = event_level_metrics(y_true, scores, float(thr))
+        out.append({
+            "threshold": float(thr),
+            "precision": float(pm["precision"]),
+            "recall": float(pm["recall"]),
+            "f1": float(pm["f1"]),
+            "event_precision": float(em["event_precision"]),
+            "event_recall": float(em["event_recall"]),
+            "event_f1": float(em["event_f1"]),
+            "delay": float(em["mean_detection_delay"]) if not np.isnan(em["mean_detection_delay"]) else float("nan"),
+            "false_alarms_per_1000": false_alarms_per_1000(y_true, scores, float(thr)),
+        })
+    return out

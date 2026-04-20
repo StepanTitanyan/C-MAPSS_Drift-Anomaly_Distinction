@@ -33,7 +33,7 @@ project/
 │   │
 │   ├── anomaly/
 │   │   ├── scoring.py           # NLL/MSE/Mahalanobis anomaly scores
-│   │   ├── urd.py               # ★ URD: D + U + S channels (core contribution)
+│   │   ├── urd.py               # ★ URD baseline: calibrated D + U + tuned S
 │   │   └── smoothing.py         # EMA score smoothing
 │   │
 │   ├── synthetic/
@@ -52,9 +52,9 @@ project/
 │       └── plots.py             # Standard pipeline figures
 │
 ├── experiments/
-│   ├── 01_train_baselines.py    # Stage A: train all 4 models
-│   ├── 02_synthetic_evaluation.py   # Stage C: NLL vs URD head-to-head
-│   ├── 02b_method_comparison.py     # Stage C+: 6-method comparison table
+│   ├── 01_train_baselines.py    # Stage A: train 5 models incl. TranAD
+│   ├── 02_synthetic_evaluation.py   # Stage C: URD baseline vs TranAD
+│   ├── 02b_method_comparison.py     # Stage C+: multi-method table incl. TranAD
 │   ├── 03_drift_classification.py   # Stage D: drift vs anomaly, 16-feat ablation
 │   ├── 04_urd_fingerprinting.py     # Stage E: 5-class + 9-class fingerprinting
 │   └── 05_generate_paper_outputs.py # ★ ALL paper figures + tables → outputs/for_paper/
@@ -64,7 +64,7 @@ project/
 │   ├── figures/                 # Per-stage experiment figures
 │   ├── results/                 # Metrics, tables, JSON results
 │   ├── logs/                    # Training logs
-│   └── for_paper/               # ★ All 7 figures + 4 tables for the paper
+│   └── for_paper/               # ★ Updated paper pack (10 figures + 4 tables)
 │
 └── tests/                       # Unit tests
 ```
@@ -82,12 +82,12 @@ Step 4  Gaussian GRU  →  (μ_t, σ_t) per sensor
         Loss: NLL = (1/d) Σ_j [ log(σ_j) + (x_j - μ_j)² / (2σ_j²) ]
             ↓ urd.py
 Step 5  URD Decomposition:
-        D_t = (1/d) Σ_j r²_{t,j}            r = (x-μ)/σ  ~  N(0,1) under normal
-        U_t = (1/d) Σ_j σ_{t,j}/σ_ref,j
-        S_t = FDE(t) + γ·max(0, run-2)      (stationarity — novel channel)
-        combined = max(D_normalised, S_normalised)
+        D_t = r_t^T Σ_r^{-1} r_t           r = (x-μ)/(τ·σ) after sigma calibration
+        U_t = (1/d) Σ_j σ_eff,t,j/σ_ref,j
+        S_t = FDE(t) + 3·max(0, run-1)      (tuned stationarity channel)
+        combined = 0.35·D_normalised + 0.65·S_normalised
             ↓ features.py + classifier.py
-Step 6  16-dim feature vector per event  →  RF/LR  →  "anomaly" or "drift"
+Step 6  16-dim feature vector per event  →  XGBoost/RF/LR  →  "anomaly" or "drift"
         Further:  →  5-class fingerprint (specific type + operational response)
 ```
 
@@ -109,24 +109,27 @@ python -m experiments.04_urd_fingerprinting
 
 # 8. Generate ALL paper figures and tables
 python -m experiments.05_generate_paper_outputs
-# → outputs/for_paper/ (7 figures + 4 tables, publication-ready)
+# → outputs/for_paper/ (updated paper pack with TranAD comparison and calibration plots)
 ```
 
 ## Paper Outputs (outputs/for_paper/)
 
 | File | Contents |
 |------|----------|
-| fig1_pipeline_overview.png | Full pipeline with math annotation at every step |
-| fig2_urd_channels.png | D/U/S trajectories for spike / drift / freeze |
-| fig3_sensor_freeze_blind_spot.png | NLL vs Stationarity — the "aha" figure |
-| fig4_roc_curves_by_type.png | ROC per anomaly type, 6 methods |
-| fig5_signature_heatmap.png | (D,U,S) mean per event type — heatmap |
-| fig6_feature_importance.png | RF feature importances, Stage D |
-| fig7_prediction_bands.png | μ ± 2σ bands on a test engine |
-| table1_anomaly_detection.csv | ROC-AUC per type × method |
-| table2_drift_ablation.csv | 9/12/16-feat × LR/RF accuracy |
+| fig1_pipeline_overview.png | Updated pipeline overview with URD and TranAD branches |
+| fig2_roc_pr_urd_vs_tranad.png | Direct ROC + PR comparison: URD baseline vs TranAD |
+| fig3_threshold_sweep.png | Precision / recall / F1 threshold sweeps |
+| fig4_per_type_pr.png | Per-anomaly-type PR-AUC bar chart |
+| fig5_case_timeline_freeze.png | Raw signal + GRU band + D/U/S timeline on a freeze case |
+| fig6_dus_distributions.png | D/U/S distribution plots by anomaly category |
+| fig7_feature_importance.png | Stage D feature importance (XGBoost, URD 16 features) |
+| fig8_probabilistic_calibration.png | Coverage and residual calibration for the URD backbone |
+| fig9_fingerprint_5class_confusion.png | 5-class fingerprinting confusion matrix |
+| fig10_stage_d_feature_importance.png | Copied stage-level feature-importance figure |
+| table1_anomaly_detection.csv | URD vs TranAD ROC/PR summary |
+| table2_drift_ablation.csv | Drift-vs-anomaly classifier comparison |
 | table3_fingerprint.csv | 5-class Precision/Recall/F1 |
-| table4_model_comparison.csv | MSE/NLL/epochs/time per model |
+| table4_model_comparison.csv | Stage A model comparison including TranAD |
 
 ## Key Design Decisions
 
@@ -144,7 +147,5 @@ It learns what HEALTHY looks like. Any departure from that is anomalous by defin
 in training and cycle 60 in testing — it already knows that engine. Engine-level splits
 prevent temporal leakage entirely.
 
-**Stationarity channel (S) — the novel contribution:**
-Standard NLL scores frozen sensors as LOWER than normal (model predicts ≈ frozen value).
-ROC-AUC = 0.44 (sub-random!). S_t = FDE(t) + γ·max(0, run-2) applied to RAW sensor
-values (not residuals) lifts sensor freeze ROC-AUC to 0.71 (+0.27).
+**Current URD baseline:**
+The deployed baseline combines calibrated Mahalanobis deviation, uncertainty tracking, and a tuned stationarity channel with weighted fusion. In the latest internal comparison it reaches 0.8636 overall ROC-AUC and 0.8230 sensor-freeze ROC-AUC. The repo now also includes a practical TranAD-style transformer baseline trained on the exact same FD001 split, sensors, window length, and healthy-only assumption so the comparison is apples-to-apples.
