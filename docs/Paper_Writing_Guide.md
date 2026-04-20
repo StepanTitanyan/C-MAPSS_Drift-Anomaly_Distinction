@@ -133,7 +133,7 @@ sigmoid, accelerating, multi-sensor) using a single multi-class classifier.
 distinguish point anomalies from collective anomalies. No published method automatically
 categorizes into specific anomaly types from a single model's output.
 
-**Empirical evidence:** 90.2% five-class accuracy, 96.7% spike-vs-drop distinction.
+**Empirical evidence:** 90.0% five-class accuracy, 63.1% nine-class accuracy, and 95.0% spike-vs-drop distinction (vs 56.7% without signed deviation).
 
 ---
 
@@ -328,7 +328,7 @@ stationarity, and weighted fusion to detect both conventional anomalies and sens
 We show that URD's three-channel signature enables both drift-vs-anomaly classification and
 automatic anomaly-type fingerprinting. On the NASA C-MAPSS turbofan dataset, the URD baseline
 improves overall anomaly ROC-AUC from 0.7477 to 0.8636, improves sensor-freeze ROC-AUC from
-0.4398 to 0.8230, achieves 95.3% drift classification accuracy, and provides 90.2% accuracy
+0.4398 to 0.8230, achieves 95.5% drift classification accuracy with Random Forest URD features, and provides 90.0% accuracy
 in 5-class anomaly fingerprinting. Our results demonstrate that probabilistic models provide
 fundamentally richer diagnostic information than deterministic alternatives, and that a
 stationarity-aware channel is essential for comprehensive anomaly detection."
@@ -927,19 +927,140 @@ For a conference (AAAI, KDD): aim for 8-9 pages + references.
 **Problem:** Existing TSAD methods (1) miss sensor freeze, (2) can't distinguish
 anomaly from drift, (3) don't identify anomaly types.
 
-**Method:** Decompose probabilistic forecaster residuals into three channels:
-- D = (1/d) Σ r²_j — captures large deviations
-- U = (1/d) Σ (σ_j / σ_ref,j) — captures model confusion
-- C = max(0, (wd - Q) / √(2wd)) — captures suspiciously small residuals
+**Method:** Decompose probabilistic forecaster output into three channels using the current deployed baseline:
+- \(r_t = (x_t-\mu_t)/(	au\odot\sigma_t)\) after per-sensor sigma calibration on healthy validation windows
+- \(D_t = r_t^	op\Sigma_r^{-1}r_t\), then \(\widetilde D_t=(D_t-\mu_D^{val})/\sigma_D^{val}\)
+- \(U_t = (1/d)\sum_j \sigma^{eff}_{t,j}/\sigma_j^{ref}\)
+- \(S_t = S_t^{fde} + 3\max(0,run_t-1)\), with \(S_t^{fde}=\max_j \max(0,-\log(\operatorname{FDE}_{t,j}/\operatorname{FDE}_j^{ref}))\), then \(\widetilde S_t=(S_t-\mu_S^{val})/\sigma_S^{val}\)
+- final anomaly score \(A_t = 0.35\widetilde D_t + 0.65\widetilde S_t\)
 
 **Results:**
-- Sensor freeze: ROC-AUC 0.44 → 0.82
-- Drift classification: 94.2% accuracy
-- Fingerprinting: 90.2% five-class accuracy
+- Overall anomaly detection: ROC-AUC 0.7477 → 0.8636 and PR-AUC 0.3739 → 0.4250
+- Sensor freeze: ROC-AUC 0.4398 → 0.8230 and PR-AUC 0.0347 → 0.4467
+- Drift classification: 95.5% accuracy with Random Forest URD features
+- Fingerprinting: 90.0% five-class accuracy, 63.1% nine-class accuracy
 
-**Key insight:** Bidirectional residual analysis + uncertainty decomposition provides
-fundamentally richer diagnostic information than standard deviation-only scoring.
+**Key insight:** calibrated multivariate residual geometry plus raw-signal stationarity provides richer diagnostic information than residual magnitude alone, and it substantially outperforms the matched TranAD baseline in this FD001 protocol.
 
 ---
 
 *End of Paper Writing Guide.*
+
+
+
+## 16. Detailed math for the current baseline update
+
+This guide originally discussed earlier URD variants. The current paper-ready repository now uses a more mature baseline, so the math below should be the one you reference when writing the methods section.
+
+### 16.1 Calibrated probabilistic backbone
+
+The Gaussian GRU outputs a mean and scale for every next-step sensor:
+
+\[
+\mu_t \in \mathbb{R}^7, \qquad \sigma_t \in \mathbb{R}^7
+\]
+
+The training loss is the Gaussian negative log-likelihood
+
+\[
+\mathcal{L}_{NLL} = rac{1}{d}\sum_{j=1}^{d}\left[\log \sigma_{t,j} + rac{(x_{t,j}-\mu_{t,j})^2}{2\sigma_{t,j}^2}
+ight]
+\]
+
+On healthy validation windows, residuals are checked for calibration. Raw normalised residuals are
+
+\[
+ r^{raw}_{t,j} = rac{x_{t,j}-\mu_{t,j}}{\sigma_{t,j}}
+\]
+
+Per-sensor temperatures are fit as
+
+\[
+	au_j = \sqrt{rac{1}{N}\sum_t \left(r^{raw}_{t,j}
+ight)^2}
+\]
+
+clipped to \([0.25,4.0]\), giving
+
+\[
+\sigma^{eff}_{t,j}=	au_j\sigma_{t,j}
+\]
+
+This is why the current baseline should be described as a **calibrated** probabilistic detector, not just a raw \(\mu,\sigma\) forecaster.
+
+### 16.2 Current D/U/S mathematics
+
+Residual vector after calibration:
+
+\[
+ r_t = \left(rac{x_{t,1}-\mu_{t,1}}{\sigma^{eff}_{t,1}},\ldots,rac{x_{t,7}-\mu_{t,7}}{\sigma^{eff}_{t,7}}
+ight)^	op
+\]
+
+Deviation channel:
+
+\[
+D_t = r_t^	op \Sigma_r^{-1} r_t
+\]
+
+where \(\Sigma_r\) is the covariance of healthy validation residuals. This is then standardised:
+
+\[
+\widetilde D_t = rac{D_t - \mu_D^{val}}{\sigma_D^{val}}
+\]
+
+Uncertainty channel:
+
+\[
+U_t = rac{1}{d}\sum_{j=1}^{d}rac{\sigma^{eff}_{t,j}}{\sigma_j^{ref}}, \qquad \sigma_j^{ref}=\operatorname{median}_{t\in val}(\sigma^{eff}_{t,j})
+\]
+
+Stationarity channel:
+
+\[
+\Delta x_{t,j}=x_{t,j}-x_{t-1,j}, \qquad \operatorname{FDE}_{t,j}=rac{1}{w}\sum_{k=t-w+1}^{t}(\Delta x_{k,j})^2
+\]
+
+\[
+S_t^{fde}=\max_j \max\left(0,-\lograc{\operatorname{FDE}_{t,j}}{\operatorname{FDE}^{ref}_j+arepsilon}
+ight)
+\]
+
+\[
+S_t = S_t^{fde} + 3\max(0,run_t-1), \qquad \widetilde S_t = rac{S_t-\mu_S^{val}}{\sigma_S^{val}}
+\]
+
+Final detection score:
+
+\[
+A_t = 0.35\widetilde D_t + 0.65\widetilde S_t
+\]
+
+This is the formula that should appear in the paper when you describe the current baseline.
+
+### 16.3 Matched TranAD comparator
+
+The repository now contains a practical TranAD-style baseline under the same FD001 protocol. It uses a two-phase transformer next-step predictor rather than a probabilistic GRU. Phase 1 produces a coarse prediction \(\hat y_t^{(1)}\). A causal self-conditioning term is created from disagreement with the most recent observed step:
+
+\[
+focus_t = \sigma\left((\hat y_t^{(1)} - x_t)^2
+ight)
+\]
+
+This focus is projected into a second transformer pass, giving the refined prediction \(\hat y_t^{(2)}\). The training objective is a weighted two-phase MSE. The anomaly score is the healthy-validation-normalised next-step MSE:
+
+\[
+score_t^{TranAD} = rac{rac{1}{d}\sum_j (y_{t,j}-\hat y_{t,j}^{(2)})^2 - \mu_{val}}{\sigma_{val}}
+\]
+
+### 16.4 Latest numerical results worth citing verbatim
+
+Under the matched protocol:
+
+- URD baseline: **ROC-AUC 0.8636**, **PR-AUC 0.4250**
+- TranAD: **ROC-AUC 0.7379**, **PR-AUC 0.2475**
+- Freeze: URD **0.8230 ROC / 0.4467 PR**, TranAD **0.4621 ROC / 0.0362 PR**
+- Stage D best: **Random Forest, 16-feature URD, 0.955 accuracy**
+- Stage E: **0.900 five-class**, **0.631 nine-class**, **0.950 spike-vs-drop with signed deviation**
+
+These numbers are stronger and more current than older drafts that still mention 95.5% / 90.0% / 95.0%.

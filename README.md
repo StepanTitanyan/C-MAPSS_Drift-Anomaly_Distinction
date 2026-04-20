@@ -116,16 +116,19 @@ python -m experiments.05_generate_paper_outputs
 
 | File | Contents |
 |------|----------|
-| fig1_pipeline_overview.png | Updated pipeline overview with URD and TranAD branches |
-| fig2_roc_pr_urd_vs_tranad.png | Direct ROC + PR comparison: URD baseline vs TranAD |
-| fig3_threshold_sweep.png | Precision / recall / F1 threshold sweeps |
-| fig4_per_type_pr.png | Per-anomaly-type PR-AUC bar chart |
-| fig5_case_timeline_freeze.png | Raw signal + GRU band + D/U/S timeline on a freeze case |
-| fig6_dus_distributions.png | D/U/S distribution plots by anomaly category |
-| fig7_feature_importance.png | Stage D feature importance (XGBoost, URD 16 features) |
-| fig8_probabilistic_calibration.png | Coverage and residual calibration for the URD backbone |
+| fig1_pipeline_overview.png | Pipeline overview with updated URD baseline, TranAD branch, and downstream diagnosis blocks |
+| fig2_urd_channels.png | Channel-level demonstration of D/U/S behavior on representative spike, drift, and freeze cases |
+| fig3_sensor_freeze_blind_spot.png | Shows why residual-only scoring misses freeze while stationarity rescues it |
+| fig2_roc_pr_urd_vs_tranad.png | Direct ROC + PR comparison: current URD baseline vs TranAD under matched FD001 protocol |
+| fig3_threshold_sweep.png | Threshold sweep for precision / recall / F1 / false alarms for URD and TranAD |
+| fig4_roc_curves_by_type.png | One-vs-rest ROC curves by anomaly type for all major scoring methods |
+| fig4_per_type_pr.png | Per-anomaly-type PR-AUC comparison including URD and TranAD |
+| fig5_case_timeline_freeze.png | Raw signal + GRU prediction band + D/U/S timeline on a freeze case |
+| fig6_dus_distributions.png | Category-wise distributions of D, U, and S from the deployed URD baseline |
+| fig7_feature_importance.png | Stage D feature importance with URD-derived vs standard features visually separated |
+| fig8_probabilistic_calibration.png | Coverage and residual calibration for the Gaussian GRU backbone |
 | fig9_fingerprint_5class_confusion.png | 5-class fingerprinting confusion matrix |
-| fig10_stage_d_feature_importance.png | Copied stage-level feature-importance figure |
+| fig10_stage_d_feature_importance.png | Stage D feature-importance figure exported for the paper pack |
 | table1_anomaly_detection.csv | URD vs TranAD ROC/PR summary |
 | table2_drift_ablation.csv | Drift-vs-anomaly classifier comparison |
 | table3_fingerprint.csv | 5-class Precision/Recall/F1 |
@@ -149,3 +152,187 @@ prevent temporal leakage entirely.
 
 **Current URD baseline:**
 The deployed baseline combines calibrated Mahalanobis deviation, uncertainty tracking, and a tuned stationarity channel with weighted fusion. In the latest internal comparison it reaches 0.8636 overall ROC-AUC and 0.8230 sensor-freeze ROC-AUC. The repo now also includes a practical TranAD-style transformer baseline trained on the exact same FD001 split, sensors, window length, and healthy-only assumption so the comparison is apples-to-apples.
+
+
+## Latest Baseline Update (Detailed)
+
+The current deployed detector is **not** the older `max(D,S)` URD variant. The codebase now uses a refined baseline that keeps the same three-channel idea but changes the internal mathematics of the deviation channel and the final fusion rule. The current detector is:
+
+
+\[
+	ext{URD baseline score}_t = 0.35\,\widetilde D_t + 0.65\,\widetilde S_t
+\]
+
+where \(\widetilde D_t\) and \(\widetilde S_t\) are the validation-normalised deviation and stationarity channels. The uncertainty channel \(U_t\) is still computed and used downstream for diagnosis and fingerprinting, but the deployed Stage C detector does **not** add it directly into the final anomaly score.
+
+### 1. Sigma calibration
+
+The Gaussian GRU predicts a mean and standard deviation for every sensor at the next step:
+
+\[
+\mu_t \in \mathbb{R}^7, \qquad \sigma_t \in \mathbb{R}^7
+\]
+
+On healthy validation windows, raw normalised residuals are first computed as
+
+\[
+ r^{raw}_{t,j} = rac{x_{t,j} - \mu_{t,j}}{\sigma_{t,j}}
+\]
+
+If the predicted \(\sigma\) values are perfectly calibrated, then healthy residuals should have variance close to 1. In practice they do not, so the code fits one per-sensor temperature
+
+\[
+	au_j = \sqrt{rac{1}{N}\sum_{t=1}^{N} \left(r^{raw}_{t,j}ight)^2}
+\]
+
+clipped to the interval \([0.25, 4.0]\). The effective standard deviation then becomes
+
+\[
+\sigma^{eff}_{t,j} = 	au_j\,\sigma_{t,j}
+\]
+
+This makes residual scaling more trustworthy before any channel is computed. Calibration is fit once on healthy validation windows for a fixed trained model, and then reused at scoring time.
+
+### 2. Deviation channel \(D\): calibrated Mahalanobis energy on normalised residuals
+
+The deployed baseline no longer uses the older mean-squared normalised residual
+
+\[
+rac{1}{d}\sum_j r_{t,j}^2
+\]
+
+as its main deviation channel. Instead it uses a multivariate residual energy. After sigma calibration:
+
+\[
+ r_t = \left(rac{x_{t,1}-\mu_{t,1}}{\sigma^{eff}_{t,1}},\ldots,rac{x_{t,7}-\mu_{t,7}}{\sigma^{eff}_{t,7}}ight)^	op
+\]
+
+Healthy validation residuals are used to estimate a covariance matrix
+
+\[
+\Sigma_r = \operatorname{Cov}(r_t)
+\]
+
+with a small ridge term before inversion. The deployed deviation score is then
+
+\[
+D_t = r_t^	op \Sigma_r^{-1} r_t
+\]
+
+This is a Mahalanobis-style energy on **normalised** residuals, so it captures both per-sensor surprise and cross-sensor surprise. If several sensors move in an unusual joint pattern, \(D_t\) rises even if no single sensor is extremely large on its own.
+
+The raw \(D_t\) values are then standardised using healthy validation statistics:
+
+\[
+\widetilde D_t = rac{D_t - \mu_D^{val}}{\sigma_D^{val}}
+\]
+
+### 3. Uncertainty channel \(U\): sigma inflation relative to healthy reference
+
+After calibration, the code stores a per-sensor healthy reference uncertainty
+
+\[
+\sigma^{ref}_j = \operatorname{median}_{t\in val}(\sigma^{eff}_{t,j})
+\]
+
+and computes
+
+\[
+U_t = rac{1}{d}\sum_{j=1}^{d} rac{\sigma^{eff}_{t,j}}{\sigma^{ref}_j}
+\]
+
+Interpretation:
+- \(U_t pprox 1\): uncertainty is typical for healthy behavior
+- \(U_t > 1\): the model is less confident than normal
+- \(U_t < 1\): the model is more confident than normal
+
+In the current codebase, \(U_t\) is most valuable in the Stage D/Stage E feature layer and in signature interpretation, not as a dominant term in the final Stage C score.
+
+### 4. Stationarity channel \(S\): tuned FDE + run bonus
+
+The current baseline kept the **raw-signal** philosophy that proved crucial for freeze detection. First-difference energy (FDE) is computed from raw target values, not from residuals:
+
+\[
+\Delta x_{t,j} = x_{t,j} - x_{t-1,j}
+\]
+
+For a window length \(w=5\), the code averages squared differences over the latest window:
+
+\[
+\operatorname{FDE}_{t,j} = rac{1}{w}\sum_{k=t-w+1}^{t} (\Delta x_{k,j})^2
+\]
+
+A healthy reference is estimated from validation data:
+
+\[
+\operatorname{FDE}^{ref}_j = \mathbb{E}_{t\in val}\left[(\Delta x_{t,j})^2ight]
+\]
+
+The stationarity evidence for FDE is
+
+\[
+S^{fde}_t = \max_j \max\left(0, -\lograc{\operatorname{FDE}_{t,j}}{\operatorname{FDE}^{ref}_j + arepsilon}ight)
+\]
+
+So if motion collapses, the ratio becomes very small and the score rises. The code then adds a tuned run-length bonus. Let \(run_t\) be the longest consecutive near-constant run across sensors, using `run_delta = 1e-4`, `run_threshold = 1`, and `run_bonus = 3.0`. Then:
+
+\[
+S_t = S^{fde}_t + 3\cdot \max(0, run_t - 1)
+\]
+
+As with \(D_t\), the stationarity channel is normalised on healthy validation windows:
+
+\[
+\widetilde S_t = rac{S_t - \mu_S^{val}}{\sigma_S^{val}}
+\]
+
+### 5. Final fusion and thresholding
+
+The old baseline used a hard `max(D,S)` rule. The current one uses weighted fusion:
+
+\[
+A_t = 0.35\,\widetilde D_t + 0.65\,\widetilde S_t
+\]
+
+This means the detector leans more heavily on stationarity than on deviation. That matches the empirical findings: the largest gains over NLL come from recovering freeze/stuck faults. Thresholds are then fit on **healthy validation windows** at the 95th, 97.5th, and 99th percentiles of \(A_t\).
+
+### 6. Latest matched comparison snapshot
+
+Under the exact same FD001 split, same 7 sensors, same window length 30, and same healthy-only training rule, the current URD baseline achieved:
+
+- **Overall ROC-AUC = 0.8636**
+- **Overall PR-AUC = 0.4250**
+- **Sensor-freeze ROC-AUC = 0.8230**
+- **Sensor-freeze PR-AUC = 0.4467**
+- At the 99th-percentile threshold: **P = 0.356, R = 0.542, F1 = 0.430**
+- Event-level at p99: **EventP = 0.238, EventR = 0.862, EventF1 = 0.373**
+- False alarms at p99: **33.8 per 1000 windows** and **5.69 per engine**
+
+The matched TranAD baseline achieved:
+
+- **Overall ROC-AUC = 0.7379**
+- **Overall PR-AUC = 0.2475**
+- **Sensor-freeze ROC-AUC = 0.4621**
+- **Sensor-freeze PR-AUC = 0.0362**
+
+### 7. TranAD baseline used in this repo
+
+The TranAD comparator in this repository is a **practical TranAD-style transformer baseline adapted to the same protocol**. Instead of reconstructing the whole input window, it is adapted to your project’s next-step setup. Given a window \(X_t \in \mathbb{R}^{30	imes 7}\), it produces two predictions:
+
+\[
+\hat y_t^{(1)} = f_1(X_t), \qquad \hat y_t^{(2)} = f_2(X_t, focus_t)
+\]
+
+The first pass makes a coarse next-step prediction. A causal focus term is then formed from disagreement between the phase-1 prediction and the most recent observed step:
+
+\[
+focus_t = \sigma\left((\hat y_t^{(1)} - x_t)^2ight)
+\]
+
+This focus term is projected back into the transformer and the second pass produces the refined prediction \(\hat y_t^{(2)}\). The training loss is a weighted two-phase MSE objective with a larger weight on the second phase. The anomaly score used for comparison is simply the normalised next-step MSE:
+
+\[
+score^{TranAD}_t = rac{rac{1}{d}\sum_j (y_{t,j} - \hat y_{t,j}^{(2)})^2 - \mu_{val}}{\sigma_{val}}
+\]
+
+This makes the comparison apples-to-apples: same split, same windows, same sensors, same healthy-only training, but a very different TSAD philosophy.

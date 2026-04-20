@@ -642,7 +642,7 @@ This single number captures whether the model was "surprised" (anomaly) or "prep
 |----------|-----------------|-------------------|
 | 9-feat (no URD) | 88.8% | 11.5% |
 | 12-feat (+prob) | 91.5% | 7.4% |
-| **16-feat URD** | **95.3%** | **4.0%** |
+| **16-feat URD (RF best)** | **95.5%** | **2.9%** |
 
 URD features add +5.3 percentage points vs no-URD baseline.
 
@@ -672,7 +672,7 @@ signed_deviation_mean = (1/d) Σⱼ r_{t,j}   (signed, not |r|)
 ```
 Positive for spikes (residuals positive). Negative for drops.
 
-With this feature: spike vs drop accuracy = **96.7%**
+With this feature: spike vs drop accuracy = **95.0%**
 Without: 58.3%
 Improvement: **+36.7 percentage points** from one feature.
 
@@ -685,7 +685,7 @@ Improvement: **+36.7 percentage points** from one feature.
 | persistent_shift | 0.859 | 0.917 | 0.887 |
 | point_anomaly | 0.885 | 0.900 | 0.893 |
 | sensor_malfunction | 0.946 | 0.883 | **0.914** |
-| **5-class accuracy** | | | **90.2%** |
+| **5-class accuracy** | | | **90.0%** |
 
 Sensor malfunction — completely invisible to NLL — achieved F1 = 0.914.
 
@@ -725,10 +725,10 @@ STEP 5  URD Scoring (using gaussian_gru_best.pt)
 
 STEP 6  Classification (Stage D)
   → 16 features from (D,U,S) per event
-  → XGBoost/RF/LR → "anomaly" or "drift"   (95.3% best accuracy)
+  → XGBoost/RF/LR → "anomaly" or "drift"   (95.5% best accuracy with Random Forest)
 
 STEP 7  Fingerprinting (Stage E)
-  → Same 16 features → 5-class RF → specific type (90.2% accuracy)
+  → Same 16 features → 5-class RF → specific type (90.0% accuracy)
   → "sensor_malfunction: freeze on s_4" → replace sensor
   → "drift: gradual_shift"            → schedule maintenance
 
@@ -750,7 +750,7 @@ STEP 8  Paper Outputs
 | D+Variance | 0.7849 | 0.5635 |
 | D+FDE | 0.8240 | 0.6851 |
 | **URD (baseline)** | **0.8636** | **0.8230** |
-| TranAD baseline | produced by Stage C on the same split | compare directly in outputs/for_paper figures |
+| TranAD baseline | 0.7379 | 0.4621 |
 | Improvement vs NLL | **+0.1159** | **+0.3832** |
 
 ### Stage D — Drift Classification
@@ -759,15 +759,16 @@ STEP 8  Paper Outputs
 |---|---|---|---|
 | 9-feat, no prob | 88.8% | 11.5% | 10.9% |
 | 12-feat, orig | 91.5% | 7.4% | 9.6% |
-| **16-feat URD, XGBoost** | **95.3%** | **4.0%** | **5.4%** |
+| **16-feat URD, Random Forest** | **95.5%** | **2.9%** | **6.1%** |
+| 16-feat URD, XGBoost | 95.1% | 4.4% | 5.3% |
 
 ### Stage E — Fingerprinting
 
 | Experiment | Accuracy |
 |---|---|
-| 5-class actionable | **90.2%** |
+| 5-class actionable | **90.0%** |
 | 9-class per-type | 62.7% |
-| Spike vs Drop (with signed_dev) | **96.7%** |
+| Spike vs Drop (with signed_dev) | **95.0%** |
 | Spike vs Drop (without) | 58.3% |
 
 ---
@@ -789,7 +790,7 @@ which requires a calibrated uncertainty model.
 
 ### Contribution 2: URD-Based Drift Classification
 
-**What:** 16-dimensional (D, U, S) feature vector enables 95.3% drift/anomaly accuracy with XGBoost.
+**What:** 16-dimensional (D, U, S) feature vector enables 95.5% drift/anomaly accuracy with Random Forest; XGBoost remains close at 95.1%, showing the representation itself is robust.
 D/U ratio captures "model surprise" — the defining distinction.
 
 **Why it is new:** Existing drift detectors (ADWIN, DDM) work on 1D streams.
@@ -797,7 +798,7 @@ No existing method provides multi-dimensional anomaly characterisation in a unif
 
 ### Contribution 3: Anomaly Fingerprinting
 
-**What:** (D, U, S) signature profile → 5-class actionable taxonomy → 90.2% accuracy.
+**What:** (D, U, S) signature profile → 5-class actionable taxonomy → 90.0% accuracy, while the harder 9-class per-type task currently reaches 63.1%.
 Not just "something is wrong" but "this is a sensor freeze → replace sensor."
 
 **Why it is new:** All existing anomaly detection is binary detection.
@@ -913,3 +914,119 @@ This is why FDE is superior to raw variance for detecting freezes in trending se
 ---
 
 *End of document.*
+
+
+## 20. Detailed update: current deployed baseline and matched TranAD comparator
+
+This section is an explicit update to older URD notes. The core interpretation of the three channels is unchanged, but the repository now uses a stronger deployed baseline and a matched external TSAD comparator.
+
+### 20.1 The current detector is a weighted score, not a max score
+
+Older repository versions often described the detector as
+
+\[
+A_t^{old} = \max(D_t, S_t)
+\]
+
+The **current deployed baseline** instead uses
+
+\[
+A_t = 0.35\widetilde D_t + 0.65\widetilde S_t
+\]
+
+This means two things mathematically:
+1. the channels are first normalised on healthy validation data, so the weights are meaningful;
+2. the detector is deliberately more stationarity-sensitive than deviation-sensitive, because freeze detection is the main empirical gap in plain residual scoring.
+
+### 20.2 Calibrated Mahalanobis deviation, step by step
+
+1. Gaussian GRU predicts \(\mu_t\) and \(\sigma_t\).
+2. Raw healthy residuals are
+
+\[
+ r^{raw}_{t,j} = rac{x_{t,j}-\mu_{t,j}}{\sigma_{t,j}}
+\]
+
+3. Per-sensor temperature is fit:
+
+\[
+	au_j = \sqrt{rac{1}{N}\sum_t (r^{raw}_{t,j})^2}
+\]
+
+4. Effective sigma becomes
+
+\[
+\sigma^{eff}_{t,j}=	au_j\sigma_{t,j}
+\]
+
+5. Calibrated residual vector is
+
+\[
+ r_t = \left(rac{x_{t,1}-\mu_{t,1}}{\sigma^{eff}_{t,1}},\ldots,rac{x_{t,7}-\mu_{t,7}}{\sigma^{eff}_{t,7}}
+ight)^	op
+\]
+
+6. Validation covariance defines \(\Sigma_r\), and
+
+\[
+D_t = r_t^	op\Sigma_r^{-1}r_t
+\]
+
+7. This is standardised to \(\widetilde D_t\).
+
+Intuition: if one sensor moves oddly, \(D_t\) rises; if several sensors move in a jointly strange way, \(D_t\) rises even more.
+
+### 20.3 Tuned stationarity channel, step by step
+
+The deployed baseline keeps the raw-signal stationarity idea because the ablation path showed that residual-only conformity was too weak for freeze.
+
+\[
+\Delta x_{t,j} = x_{t,j}-x_{t-1,j}
+\]
+
+\[
+\operatorname{FDE}_{t,j}=rac{1}{5}\sum_{k=t-4}^{t}(\Delta x_{k,j})^2
+\]
+
+\[
+S_t^{fde}=\max_j\max\left(0,-\lograc{\operatorname{FDE}_{t,j}}{\operatorname{FDE}_j^{ref}+arepsilon}
+ight)
+\]
+
+Run length adds
+
+\[
+3\max(0,run_t-1)
+\]
+
+so the final raw stationarity score is
+
+\[
+S_t=S_t^{fde}+3\max(0,run_t-1)
+\]
+
+and then normalised to \(\widetilde S_t\).
+
+### 20.4 What changed empirically?
+
+With the current baseline:
+
+- Overall ROC-AUC is **0.8636**
+- Freeze ROC-AUC is **0.8230**
+- Freeze PR-AUC is **0.4467**
+- At the p99 threshold, the detector gets **precision 0.356**, **recall 0.542**, and **33.8 false alarms per 1000 windows**
+
+That is much stronger than the original NLL detector, which had freeze ROC-AUC only **0.4398**.
+
+### 20.5 Matched TranAD comparison
+
+TranAD in this repo is a two-phase transformer next-step baseline trained under the same protocol. Its refined second-pass prediction defines the anomaly score via validation-normalised next-step MSE.
+
+Matched results:
+
+| Method | Overall ROC-AUC | Overall PR-AUC | Freeze ROC-AUC | Freeze PR-AUC |
+|---|---:|---:|---:|---:|
+| URD baseline | **0.8636** | **0.4250** | **0.8230** | **0.4467** |
+| TranAD | 0.7379 | 0.2475 | 0.4621 | 0.0362 |
+
+So the current evidence supports a strong but careful claim: the URD baseline outperforms the adapted TranAD baseline **in this FD001 industrial-health-monitoring setup**, especially for freeze-like sensor faults.

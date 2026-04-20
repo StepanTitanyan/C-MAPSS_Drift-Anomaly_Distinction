@@ -458,14 +458,15 @@ Saves: `method_comparison_roc.csv`, `method_comparison_pr.csv`,
 ### 03_drift_classification.py — Stage D
 
 16 configurations: 3 classifiers × (9/12/16 features).
-Key result: XGBoost + 16 URD features = 95.3% accuracy, 4.0% drift→anomaly rate.
+Key result: Random Forest + 16 URD features = 95.5% accuracy, 2.9% drift→anomaly rate. XGBoost is close behind at 95.1%, and logistic regression still reaches 91.3%, which shows the feature representation itself is strong.
 
 Saves: `stage_d_classification.csv`
 
 ### 04_urd_fingerprinting.py — Stage E
 
-5-class actionable taxonomy: 90.2% accuracy.
-Spike vs drop with signed_deviation_mean: 96.7% (vs 58.3% without).
+5-class actionable taxonomy: 90.0% accuracy.
+9-class fine-type classification: 63.1%.
+Spike vs drop with signed_deviation_mean: 95.0% (vs 56.7% without).
 
 Saves: `stage_e_5class.csv`, `stage_e_9class.csv`, `stage_e_spike_drop.csv`,
 `stage_e_ablation.csv`, `stage_e_feature_importance.csv`
@@ -512,15 +513,15 @@ Phase 4 — generate:
 |----------|-----------------|-------------------|
 | 9-feat (no URD) | 88.8% | 11.5% |
 | 12-feat (+prob) | 91.5% | 7.4% |
-| **16-feat URD** | **95.3%** | **4.0%** |
+| **16-feat URD (RF best)** | **95.5%** | **2.9%** |
 
 ### Fingerprinting (Stage E):
 
 | Metric | Value |
 |--------|-------|
-| 5-class accuracy | 90.2% |
-| Spike vs Drop (with signed_dev) | 96.7% |
-| Spike vs Drop (without) | 58.3% |
+| 5-class accuracy | 90.0% |
+| Spike vs Drop (with signed_dev) | 95.0% |
+| Spike vs Drop (without) | 56.7% |
 | Sensor malfunction F1 | 0.914 |
 
 ---
@@ -593,3 +594,183 @@ python -m experiments.05_generate_paper_outputs
 
 All CSVs and figures are saved to `outputs/results/` and `outputs/figures/`.
 Paper-ready outputs go to `outputs/for_paper/`.
+
+
+## 13. Latest Baseline Mathematics and Update Notes
+
+This section records the **current deployed baseline** and the newer comparison logic that were added after the original D+FDE+Run version. The point is not to replace the rest of this guide, but to make sure the code-level explanation matches the latest repository state exactly.
+
+### 13.1 What changed from the old URD baseline?
+
+The original URD baseline used:
+
+\[
+A_t^{old} = \max(D_t^{old}, S_t^{old})
+\]
+
+with
+
+\[
+D_t^{old} = rac{1}{d}\sum_{j=1}^{d}\left(rac{x_{t,j}-\mu_{t,j}}{\sigma_{t,j}}ight)^2
+\]
+
+and a stationarity term based on FDE plus run-length. That version already worked well, especially for freeze.
+
+The **current** baseline changes three pieces:
+
+1. **Sigma calibration** is added before any residual-based scoring.
+2. **Deviation** uses Mahalanobis energy on the calibrated normalised residual vector rather than simple mean squared residual.
+3. **Fusion** is a weighted sum instead of a hard max.
+
+The current score is:
+
+\[
+A_t = 0.35\,\widetilde D_t + 0.65\,\widetilde S_t
+\]
+
+where \(\widetilde D_t\) and \(\widetilde S_t\) are channel scores normalised by healthy validation mean and standard deviation.
+
+### 13.2 Sigma calibration in code
+
+Inside `URDScorer.fit(...)`, raw normalised residuals are first computed as
+
+\[
+ r^{raw}_{t,j} = rac{x_{t,j} - \mu_{t,j}}{\sigma_{t,j}}
+\]
+
+Then each sensor gets a calibration temperature
+
+\[
+	au_j = \sqrt{rac{1}{N}\sum_t (r^{raw}_{t,j})^2}
+\]
+
+clipped to \([0.25, 4.0]\). The effective sigma used later is
+
+\[
+\sigma^{eff}_{t,j} = 	au_j\sigma_{t,j}
+\]
+
+This fit happens once on healthy validation windows for a fixed trained GRU. It does **not** need to be refit for every test trajectory. It only needs refitting when the backbone model, sensor set, preprocessing, or validation definition changes.
+
+### 13.3 Deviation channel in code
+
+After calibration, the residual vector is
+
+\[
+ r_t = \left(rac{x_{t,1}-\mu_{t,1}}{\sigma^{eff}_{t,1}},\ldots,rac{x_{t,7}-\mu_{t,7}}{\sigma^{eff}_{t,7}}ight)^	op
+\]
+
+Healthy validation residuals define
+
+\[
+\Sigma_r = \operatorname{Cov}(r_t)
+\]
+
+with a small regularisation term before pseudo-inversion. The code then computes
+
+\[
+D_t = r_t^	op \Sigma_r^{-1} r_t
+\]
+
+Finally,
+
+\[
+\widetilde D_t = rac{D_t - \mu_D^{val}}{\sigma_D^{val}}
+\]
+
+This is more sensitive to unusual joint residual patterns than the older diagonal residual energy.
+
+### 13.4 Uncertainty channel in code
+
+The healthy reference uncertainty is
+
+\[
+\sigma_j^{ref} = \operatorname{median}_{t\in val}(\sigma^{eff}_{t,j})
+\]
+
+The uncertainty channel is
+
+\[
+U_t = rac{1}{d}\sum_{j=1}^{d} rac{\sigma^{eff}_{t,j}}{\sigma_j^{ref}}
+\]
+
+The current baseline still computes and exports \(U_t\), but Stage C detection does not weight it directly into the final score. It becomes most valuable later in Stage D and Stage E, where it helps distinguish drift-like behavior from point anomalies and sensor malfunctions.
+
+### 13.5 Stationarity channel in code
+
+The current stationarity channel keeps the raw-signal design that beat conformity-style residual tests in the project ablations. First-difference energy is
+
+\[
+\Delta x_{t,j}=x_{t,j}-x_{t-1,j}, \qquad \operatorname{FDE}_{t,j}=rac{1}{w}\sum_{k=t-w+1}^{t}(\Delta x_{k,j})^2
+\]
+
+with \(w=5\). A per-sensor reference is fit on healthy validation windows:
+
+\[
+\operatorname{FDE}_j^{ref} = \mathbb{E}_{t\in val}\left[(\Delta x_{t,j})^2ight]
+\]
+
+The FDE evidence is
+
+\[
+S_t^{fde}=\max_j\max\left(0,-\lograc{\operatorname{FDE}_{t,j}}{\operatorname{FDE}_j^{ref}+arepsilon}ight)
+\]
+
+Run length is computed using `run_delta = 1e-4`, and the tuned stationarity score is
+
+\[
+S_t = S_t^{fde} + 3\cdot\max(0, run_t-1)
+\]
+
+then normalised to
+
+\[
+\widetilde S_t = rac{S_t - \mu_S^{val}}{\sigma_S^{val}}
+\]
+
+### 13.6 Stage C matched comparison with TranAD
+
+The repository now contains a practical TranAD-style baseline using the **same** data protocol as URD:
+- same FD001 split by engine
+- same 7 selected sensors
+- same window length 30
+- same healthy-only training assumption
+
+Its anomaly score is the validation-normalised next-step mean squared error of the refined second-phase transformer prediction:
+
+\[
+score_t^{TranAD} = rac{rac{1}{d}\sum_j (y_{t,j}-\hat y_{t,j}^{(2)})^2 - \mu_{val}}{\sigma_{val}}
+\]
+
+The current matched comparison from Stage C is:
+
+| Metric | URD baseline | TranAD |
+|---|---:|---:|
+| Overall ROC-AUC | **0.8636** | 0.7379 |
+| Overall PR-AUC | **0.4250** | 0.2475 |
+| Sensor-freeze ROC-AUC | **0.8230** | 0.4621 |
+| Sensor-freeze PR-AUC | **0.4467** | 0.0362 |
+| p99 precision | **0.356** | 0.129 |
+| p99 false alarms / 1000 windows | **33.8** | 110.3 |
+| p99 false alarms / engine | **5.69** | 18.56 |
+
+### 13.7 Latest Stage D and Stage E numbers
+
+Latest Stage D drift-vs-anomaly results:
+
+| Classifier / feature set | Accuracy | Drift→Anomaly | Anomaly→Drift |
+|---|---:|---:|---:|
+| Logistic regression, URD 16 | 0.913 | 0.092 | 0.082 |
+| Random forest, URD 16 | **0.955** | **0.029** | 0.061 |
+| XGBoost, URD 16 | 0.951 | 0.044 | **0.053** |
+
+Latest Stage E fingerprinting results:
+
+| Metric | Value |
+|---|---:|
+| 5-class actionable accuracy | **0.900** |
+| 9-class per-type accuracy | 0.631 |
+| Spike vs Drop (with signed deviation) | **0.950** |
+| Spike vs Drop (without signed deviation) | 0.567 |
+
+The most important point is that the feature representation, not just the classifier family, remains strong: even logistic regression is above 0.91 when the full URD feature vector is used.

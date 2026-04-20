@@ -812,9 +812,9 @@ decomposition is the actual contribution, not the classifier complexity.
 |---|---|---|
 | 9 features (no probabilistic info) | 90.9% | 8.6% |
 | 12 features (original probabilistic) | 92.1% | 5.4% |
-| **16 features (URD)** | **95.3%** | **4.0%** |
+| **16 features (URD, RF best)** | **95.5%** | **2.9%** |
 
-The URD features reduce the drift-as-anomaly rate sharply relative to weaker feature sets. In the latest run, logistic regression reaches 90.3% accuracy with URD features, while the best overall classifier (XGBoost) reaches 95.3% accuracy with only 4.0% of drift events misclassified as anomalies.
+The URD features reduce the drift-as-anomaly rate sharply relative to weaker feature sets. In the latest run, logistic regression reaches 91.3% accuracy with URD features, Random Forest reaches the best overall accuracy at 95.5% with only 2.9% of drift events misclassified as anomalies, and XGBoost remains very close at 95.1%.
 
 ---
 
@@ -1040,3 +1040,141 @@ fundamentally enabled by the probabilistic approach.
 ---
 
 *End of document.*
+
+
+## 18. Detailed update on the current baseline and TranAD comparison
+
+The earlier sections explain the original logic of the project. This section adds the newer mathematical refinements that now define the deployed baseline.
+
+### 18.1 What exactly changed?
+
+Originally, the project’s detector was closest to a `max(D,S)` score with an older deviation channel. The current repository now uses:
+
+\[
+A_t = 0.35\widetilde D_t + 0.65\widetilde S_t
+\]
+
+where the new pieces are:
+- calibrated sigma before residual scoring,
+- Mahalanobis energy on calibrated normalised residuals for \(D\),
+- the same general stationarity philosophy for \(S\), but with tuned run/FDE settings,
+- uncertainty \(U\) retained for interpretation and downstream classifiers.
+
+### 18.2 Detailed mathematics of the deployed baseline
+
+The Gaussian GRU predicts a mean and standard deviation for every next-step sensor value:
+
+\[
+\mu_t, \sigma_t \in \mathbb{R}^7
+\]
+
+Healthy validation windows are used to fit a per-sensor calibration temperature. First compute raw normalised residuals:
+
+\[
+ r^{raw}_{t,j} = rac{x_{t,j}-\mu_{t,j}}{\sigma_{t,j}}
+\]
+
+Then fit
+
+\[
+	au_j = \sqrt{rac{1}{N}\sum_t (r^{raw}_{t,j})^2}
+\]
+
+and define
+
+\[
+\sigma^{eff}_{t,j} = 	au_j\sigma_{t,j}
+\]
+
+This gives the calibrated residual vector
+
+\[
+ r_t = \left(rac{x_{t,1}-\mu_{t,1}}{\sigma^{eff}_{t,1}},\ldots,rac{x_{t,7}-\mu_{t,7}}{\sigma^{eff}_{t,7}}ight)^	op
+\]
+
+The new deviation channel is
+
+\[
+D_t = r_t^	op\Sigma_r^{-1}r_t
+\]
+
+where \(\Sigma_r\) is the covariance of healthy validation residuals. This is then standardised to \(\widetilde D_t\).
+
+The uncertainty channel uses the calibrated sigma values:
+
+\[
+U_t = rac{1}{7}\sum_{j=1}^{7}rac{\sigma^{eff}_{t,j}}{\sigma_j^{ref}}, \qquad \sigma_j^{ref}=\operatorname{median}(\sigma^{eff}_{t,j}	ext{ on val})
+\]
+
+The stationarity channel is still computed from raw targets rather than residuals. With window size 5:
+
+\[
+\Delta x_{t,j}=x_{t,j}-x_{t-1,j}, \qquad \operatorname{FDE}_{t,j}=rac{1}{5}\sum_{k=t-4}^{t}(\Delta x_{k,j})^2
+\]
+
+\[
+S_t^{fde}=\max_j\max\left(0,-\lograc{\operatorname{FDE}_{t,j}}{\operatorname{FDE}_j^{ref}+arepsilon}ight)
+\]
+
+The run bonus is
+
+\[
+3\max(0,run_t-1)
+\]
+
+so
+
+\[
+S_t = S_t^{fde} + 3\max(0,run_t-1)
+\]
+
+and then normalised to \(\widetilde S_t\).
+
+The final anomaly score is
+
+\[
+A_t = 0.35\widetilde D_t + 0.65\widetilde S_t
+\]
+
+### 18.3 Why these refinements helped
+
+- **Sigma calibration** makes residual scaling trustworthy.
+- **Mahalanobis D** captures unusual multivariate combinations of residuals.
+- **Weighted fusion** prevents stationarity from being ignored when deviation is only moderate.
+- **Raw-signal S** still preserves the project’s main freeze-detection advantage.
+
+### 18.4 Matched TranAD baseline
+
+The project now includes a practical TranAD-style comparator under the same data protocol. It uses a two-pass transformer next-step predictor. If the first-pass prediction is \(\hat y_t^{(1)}\), then the model constructs a causal self-conditioning focus term from disagreement with the latest observed step and uses it in the second pass to obtain \(\hat y_t^{(2)}\). The final anomaly score is the validation-normalised next-step MSE:
+
+\[
+score_t^{TranAD} = rac{rac{1}{d}\sum_j (y_{t,j}-\hat y_{t,j}^{(2)})^2 - \mu_{val}}{\sigma_{val}}
+\]
+
+This makes the comparison fair: same engines, same sensors, same windows, same healthy-only training region, different anomaly-detection philosophy.
+
+### 18.5 Latest empirical snapshot
+
+**Stage C: URD baseline vs TranAD**
+
+| Metric | URD baseline | TranAD |
+|---|---:|---:|
+| Overall ROC-AUC | **0.8636** | 0.7379 |
+| Overall PR-AUC | **0.4250** | 0.2475 |
+| Freeze ROC-AUC | **0.8230** | 0.4621 |
+| Freeze PR-AUC | **0.4467** | 0.0362 |
+| p99 precision | **0.356** | 0.129 |
+| p99 false alarms / 1000 windows | **33.8** | 110.3 |
+
+**Stage D: drift vs anomaly**
+
+- Logistic regression URD-16: **0.913**
+- Random Forest URD-16: **0.955**
+- XGBoost URD-16: **0.951**
+
+**Stage E: fingerprinting**
+
+- 5-class actionable: **0.900**
+- 9-class per-type: **0.631**
+- Spike vs Drop with signed deviation: **0.950**
+- Without signed deviation: **0.567**
